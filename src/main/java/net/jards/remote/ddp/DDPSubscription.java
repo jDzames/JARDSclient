@@ -31,7 +31,7 @@ public class DDPSubscription implements Subscription {
 
     @Override
     public void stop() {
-        remoteStorage.unsubscribe(this.id);
+        remoteStorage.unsubscribe(this.subscriptionName);
     }
 
     @Override

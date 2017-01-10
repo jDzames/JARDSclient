@@ -14,6 +14,8 @@ public class Document {
 	 */
 	private final UUID uuid;
 
+
+
 	/**
 	 * Raw JSON data.
 	 */
@@ -47,4 +49,14 @@ public class Document {
 	public UUID getUuid() {
 		return uuid;
 	}
+
+	public String getJsonData() {
+		return jsonData;
+	}
 }
+
+
+/*
+* doplnit
+*
+* */

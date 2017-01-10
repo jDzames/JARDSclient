@@ -24,3 +24,8 @@ public class Transaction {
 		return null;
 	}
 }
+
+/*
+* cim ine od collection metod? - tym ze tu mam Storage -> tade to do vlakna sa posle na vykonanie
+*
+* */

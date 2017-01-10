@@ -5,9 +5,15 @@ import net.jards.core.StorageSetup;
 
 public class SQLiteLocalStorage extends LocalStorage {
 
-	protected SQLiteLocalStorage(StorageSetup storageSetup) {
+
+	public SQLiteLocalStorage(StorageSetup storageSetup) {
 		super(storageSetup);
 		// TODO Auto-generated constructor stub
 	}
 
 }
+
+/*
+* tu realne dopyty
+*
+* */

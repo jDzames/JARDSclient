@@ -17,3 +17,10 @@ public class DocumentList extends AbstractList<Document> {
 		return 0;
 	}
 }
+
+
+/*
+* len na citanie, ci doplnit?
+* list
+*
+* */

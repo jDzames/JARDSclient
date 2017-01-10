@@ -71,3 +71,10 @@ public class Collection {
 		return local;
 	}
 }
+
+
+
+/*
+* cez transaction, lebo to ma storage
+*
+* */

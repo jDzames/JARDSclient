@@ -1,6 +1,11 @@
 package net.jards.core;
 
-import java.util.*;
+import net.jards.errors.Error;
+
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
 
 /**
  * Transparent storage implementation that combines data from local and remote
@@ -43,7 +48,7 @@ public class Storage {
 		this.localStorage = localStorage;
 		remoteStorage.setListener(new RemoteStorageListener() {
 
-			public void requestCompleted(ExecutionRequest request) {
+			public void requestCompleted(ExecutionRequest request, Object result) {
 				// TODO Auto-generated method stub
 
 			}
@@ -53,9 +58,19 @@ public class Storage {
 
 			}
 
-			public void connectionChanged() {
+			public void connectionChanged(Connection connection) {
 				// TODO Auto-generated method stub
 				
+			}
+
+			@Override
+			public void unsubscribed(String subscriptionName, Error error) {
+				// TODO Auto-generated method stub
+			}
+
+			@Override
+			public void onError(Error error) {
+				// TODO Auto-generated method stub
 			}
 
 			public void collectionInvalidated(String collection) {
@@ -63,6 +78,9 @@ public class Storage {
 				
 			}
 		});
+		//TODO session state
+		remoteStorage.start("");
+
 	}
 
 	/**
@@ -141,3 +159,11 @@ public class Storage {
 
 	}
 }
+
+/*
+* execute - bud zavolam rovno run alebo pridam do vlakna?/vytvorim nove vlakno na zavolanie?
+* cally - vola metodu, z tych co su v mape
+* pridaju do pendingRequests - v tom handleri sa to tam aj zavola?
+* ze som skoncil ako zistim
+*
+* */

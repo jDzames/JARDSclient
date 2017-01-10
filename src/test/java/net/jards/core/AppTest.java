@@ -3,6 +3,8 @@ package net.jards.core;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import net.jards.local.sqlite.SQLiteLocalStorage;
+import net.jards.remote.ddp.DDPRemoteStorage;
 
 /**
  * Unit test for simple App.
@@ -33,6 +35,12 @@ public class AppTest
      */
     public void testApp()
     {
+
+        StorageSetup storageSetup = new StorageSetup();
+        RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, "localhost/meteor");
+        LocalStorage localStorage = new SQLiteLocalStorage(storageSetup);
+        Storage storage = new Storage(storageSetup, remoteStorage, localStorage);
+
         assertTrue( true );
     }
 }

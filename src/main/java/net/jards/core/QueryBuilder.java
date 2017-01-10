@@ -11,3 +11,8 @@ public class QueryBuilder {
 	}
 
 }
+
+/*
+* ala storio
+*
+* */

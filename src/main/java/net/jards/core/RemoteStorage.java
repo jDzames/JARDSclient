@@ -10,9 +10,14 @@ public abstract class RemoteStorage {
 
 	protected abstract void start(String sessionState);
 
-	protected abstract void stop();
+	protected abstract void stop(String subscriptionName);
 
 	protected abstract void setListener(RemoteStorageListener listener);
 
 	public abstract String getSessionState();
 }
+
+/*
+* seed - pozeral som, nedoriesil
+*
+* */

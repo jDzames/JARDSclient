@@ -11,6 +11,8 @@ public class ExecutionRequest {
 
 	private Transaction transaction;
 
+	private ExecutionContext context;
+
 	private Object[] attributes;
 
 	private TransactionRunnable runnable;
@@ -19,7 +21,8 @@ public class ExecutionRequest {
 
 	public ExecutionRequest(Transaction transaction) {
 		this.transaction = transaction;
-		id = "123";
+		id = "" + (int) Math.random()*1000000;
+		methodName = "";
 	}
 
 	public boolean isCompleted() {
@@ -33,6 +36,45 @@ public class ExecutionRequest {
 
 	}
 
+	void setAttributes(Object[] attributes) {
+		this.attributes = attributes;
+	}
+
+	void setRunnable(TransactionRunnable runnable) {
+		this.runnable = runnable;
+	}
+
+	void setMethodName(String methodName) {
+		this.methodName = methodName;
+	}
+
+	void setContext(ExecutionContext context) {
+		this.context = context;
+	}
+
+	Object[] getAttributes() {
+		return attributes;
+	}
+
+	String getId() {
+		return id;
+	}
+
+	String getMethodName() {
+		return methodName;
+	}
+
+	ExecutionContext getContext() {
+		return context;
+	}
+
+	Transaction getTransaction() {
+		return transaction;
+	}
+
+	TransactionRunnable getRunnable() {
+		return runnable;
+	}
 }
 
 

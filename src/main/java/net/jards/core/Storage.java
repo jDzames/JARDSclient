@@ -2,10 +2,7 @@ package net.jards.core;
 
 import net.jards.errors.Error;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 
 /**
  * Transparent storage implementation that combines data from local and remote
@@ -16,17 +13,25 @@ public class Storage {
 	private class RequestHandleThread extends Thread {
 		@Override
 		public void run() {
+
+			//Get this thread, so program can check and dont allow transactions in another.
+			setThreadForLocalDBRuns(Thread.currentThread());
+
 			while (true) {
 				ExecutionRequest request = null;
 				synchronized (pendingRequests) {
 					try {
 						pendingRequests.wait();
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 					request = pendingRequests.poll();
 				}
+				ExecutionContext context = request.getContext();
+				Transaction transaction = request.getTransaction();
+				Object[] arguments = request.getAttributes();
+				TransactionRunnable runnable = request.getRunnable();
+				runnable.run(context, transaction, arguments);
 			}
 		}
 	}
@@ -40,6 +45,7 @@ public class Storage {
 	private final Queue<ExecutionRequest> unconfirmedRequests = new LinkedList<ExecutionRequest>();
 
 	private RequestHandleThread requestHandleThread;
+	private Thread threadForLocalDBRuns;
 
 	private final Object lock = new Object();
 
@@ -55,7 +61,7 @@ public class Storage {
 
 			public void changesReceived(RemoteDocumentChange[] changes) {
 				// TODO Auto-generated method stub
-
+				System.out.println("--- V STORAGE ---  "+Arrays.toString(changes));
 			}
 
 			public void connectionChanged(Connection connection) {
@@ -78,9 +84,18 @@ public class Storage {
 				
 			}
 		});
+
 		//TODO session state
 		remoteStorage.start("");
 
+	}
+
+	void setThreadForLocalDBRuns(Thread threadForLocalDBRuns) {
+		this.threadForLocalDBRuns = threadForLocalDBRuns;
+	}
+
+	boolean sameAsThreadForLocalDBRuns(Thread thread) {
+		return threadForLocalDBRuns == thread;
 	}
 
 	/**
@@ -91,7 +106,11 @@ public class Storage {
 	 * @return
 	 */
 	public Collection getCollection(String name) {
-		return null;
+
+		//TODO from table or memory?
+
+		//pre testy zatial
+		return new Collection(name, false, this);
 	}
 
 	public Subscription subscribe(String subscriptionName, Object... arguments) {
@@ -99,15 +118,31 @@ public class Storage {
 	}
 
 	public void registerSpeculativeMethod(String name, TransactionRunnable runnable) {
-
+		if (name == null ||  runnable == null){
+			//TODO error?
+		}
+		speculativeMethods.put(name, runnable);
 	}
 
 	public ExecutionRequest execute(TransactionRunnable runnable, Object... arguments) {
-		return null;
+		ExecutionRequest executionRequest = executeAsync(runnable, arguments);
+		executionRequest.await();
+		return executionRequest;
 	}
 
 	public ExecutionRequest executeAsync(TransactionRunnable runnable, Object... arguments) {
-		return null;
+		Transaction transaction = new Transaction(this);
+		ExecutionRequest executionRequest = new ExecutionRequest(transaction);
+		executionRequest.setRunnable(runnable);
+		executionRequest.setAttributes(arguments);
+		executionRequest.setContext(new DefaultExecutionContext(this));
+
+		synchronized (pendingRequests){
+			pendingRequests.offer(executionRequest);
+			pendingRequests.notify();
+		}
+
+		return executionRequest;
 	}
 
 	public ExecutionRequest executeLocally(TransactionRunnable runnable, Object... arguments) {
@@ -118,13 +153,13 @@ public class Storage {
 		return null;
 	}
 
-	public ExecutionRequest call(String name, Object... arguments) {
-		ExecutionRequest state = callAsync(name, arguments);
-		state.await();
-		return state;
+	public ExecutionRequest call(String methodName, Object... arguments) {
+		ExecutionRequest executionRequest = callAsync(methodName, arguments);
+		executionRequest.await();
+		return executionRequest;
 	}
 
-	public ExecutionRequest callAsync(String name, Object... arguments) {
+	public ExecutionRequest callAsync(String methodName, Object... arguments) {
 		// Odosle call request do vlakna, kde sa asynchronne
 		// no serialozovane spracovavaju modifikujuce kody.
 
@@ -135,12 +170,23 @@ public class Storage {
 		// ked sa call vykona, transakcia sa vyhodi zo zoznamu transakcii (jej
 		// zmeny sa ignoruju).
 
+		if (!speculativeMethods.containsKey(methodName)){
+			//TODO error?
+			return null;
+		}
+		TransactionRunnable methodRunnable = speculativeMethods.get(methodName);
+		Transaction transaction = new Transaction(this);
+		ExecutionRequest executionRequest = new ExecutionRequest(transaction);
+		executionRequest.setRunnable(methodRunnable);
+		executionRequest.setAttributes(arguments);
+		executionRequest.setContext(new DefaultExecutionContext(this));
+
 		synchronized (pendingRequests) {
 			pendingRequests.offer(new ExecutionRequest(null));
 			pendingRequests.notify();
 		}
 
-		return null;
+		return executionRequest;
 	}
 
 	/**
@@ -156,12 +202,13 @@ public class Storage {
 	 * Stops the self-synchronizing storage.
 	 */
 	public void stop() {
-
+		String state = remoteStorage.getSessionState();
+		remoteStorage.stop();
 	}
 }
 
 /*
-* execute - bud zavolam rovno run alebo pridam do vlakna?/vytvorim nove vlakno na zavolanie?
+*
 * cally - vola metodu, z tych co su v mape
 * pridaju do pendingRequests - v tom handleri sa to tam aj zavola?
 * ze som skoncil ako zistim

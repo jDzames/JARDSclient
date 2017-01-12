@@ -20,7 +20,7 @@ public class DocumentList extends AbstractList<Document> {
 
 
 /*
-* len na citanie, ci doplnit?
+* doplnit ako cursor
 * list
 *
 * */

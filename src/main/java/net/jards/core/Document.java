@@ -53,6 +53,10 @@ public class Document {
 	public String getJsonData() {
 		return jsonData;
 	}
+
+	void setJsonData(String jsonData) {
+		this.jsonData = jsonData;
+	}
 }
 
 

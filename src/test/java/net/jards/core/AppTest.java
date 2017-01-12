@@ -6,6 +6,8 @@ import junit.framework.TestSuite;
 import net.jards.local.sqlite.SQLiteLocalStorage;
 import net.jards.remote.ddp.DDPRemoteStorage;
 
+import java.util.UUID;
+
 /**
  * Unit test for simple App.
  */
@@ -41,6 +43,7 @@ public class AppTest
         LocalStorage localStorage = new SQLiteLocalStorage(storageSetup);
         Storage storage = new Storage(storageSetup, remoteStorage, localStorage);
 
+        Document d = new Document(storage.getCollection("example"), UUID.randomUUID());
         assertTrue( true );
     }
 }

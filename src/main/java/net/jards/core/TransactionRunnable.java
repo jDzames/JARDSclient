@@ -7,7 +7,7 @@ public interface TransactionRunnable {
 }
 
 /*
-* metoda? run ako vo vlakne?
-* pusti sa v RequestHandleTread ?
+* metoda, run ako vo vlakne
+* pusti sa v RequestHandleTread
 *
 * */

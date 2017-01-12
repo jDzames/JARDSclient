@@ -38,7 +38,7 @@ public class Collection {
 		return transaction.insert(this, document);
 	}
 
-	public Document remove(Document document, Transaction transaction) {
+	public boolean remove(Document document, Transaction transaction) {
 		checkTransaction(transaction);
 		return transaction.remove(this, document);
 	}
@@ -51,6 +51,16 @@ public class Collection {
 	private void checkTransaction(Transaction transaction) {
 		// overime, ci transakcia je ok - napriklad ci uz nebola uzatvorena
 		// alebo sme vo vlakne, v ktorom bola vytvorena transakcia
+		if (transaction == null){
+			//TODO error?
+			return;
+		}
+		boolean rightThread = transaction.checkIfInThreadForDBRuns();
+		if (!rightThread){
+			//TODO error?
+			return;
+		}
+
 	}
 
 	public ResultSet find(Query query) {

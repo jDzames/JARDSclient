@@ -13,6 +13,7 @@ public class Transaction {
 	 */
 	
 	Document insert(Collection collection, Document document) {
+		// storage -> localStorage -> sql/string/...
 		return null;
 	}
 	
@@ -20,9 +21,15 @@ public class Transaction {
 		return null;
 	}
 	
-	Document remove(Collection collection, Document document) {
-		return null;
+	boolean remove(Collection collection, Document document) {
+		return false;
 	}
+
+
+	public boolean checkIfInThreadForDBRuns() {
+		return storage.sameAsThreadForLocalDBRuns(Thread.currentThread());
+	}
+
 }
 
 /*

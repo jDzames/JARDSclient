@@ -48,6 +48,12 @@ public class DDPRemoteStorage extends RemoteStorage {
 	}
 
 	@Override
+	public void stop() {
+		//TODO unsubscribe all subscriptions and such?
+		ddpClient.disconnect();
+	}
+
+	@Override
 	protected Subscription subscribe(String subscriptionName, Object... arguments) {
 		// TODO Auto-generated method stub
 		int subId = ddpClient.subscribe(subscriptionName, new Object[]{});
@@ -63,11 +69,6 @@ public class DDPRemoteStorage extends RemoteStorage {
 		}
 		int subId = subscriptions.get(subscriptionName).getId();
 		ddpClient.unsubscribe(subId);
-	}
-
-	@Override
-	protected void stop(String subscriptionName) {
-		unsubscribe(subscriptionName);
 	}
 
 	@Override
@@ -93,13 +94,13 @@ public class DDPRemoteStorage extends RemoteStorage {
 
 	@Override
 	public String getSessionState() {
-		return ddpObserver.getmDdpState().name();
+		//TODO to string? how take actual state and use it in restart?
+		return ddpClient.getState().toString();
 	}
 
 	protected void subscriptionReady(String subscriptionName){
 		//TODO something to do?
 	}
-
 
 
 	protected void requestCompleted(int methodId, Object result){

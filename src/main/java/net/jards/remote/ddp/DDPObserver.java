@@ -1,5 +1,6 @@
 package net.jards.remote.ddp;
 
+import com.google.gson.Gson;
 import com.keysolutions.ddpclient.DDPClient;
 import com.keysolutions.ddpclient.DDPClient.DdpMessageField;
 import com.keysolutions.ddpclient.DDPClient.DdpMessageType;
@@ -30,6 +31,7 @@ public class DDPObserver extends DDPListener implements Observer {
     private Map<Integer, DDPSubscription> subscriptions;
     private Map<Integer, String> methods;
     private final DDPRemoteStorage ddpRemoteStorage;
+    private final Gson gson;
 
 
     public DDPObserver(DDPRemoteStorage ddpRemoteStorage) {
@@ -37,6 +39,7 @@ public class DDPObserver extends DDPListener implements Observer {
         subscriptions = new HashMap<>();
         methods = new HashMap<>();
         mDdpState = STATE.Disconnected;
+        gson = new Gson();
     }
 
     /**
@@ -85,7 +88,8 @@ public class DDPObserver extends DDPListener implements Observer {
             if (msgtype.equals(DdpMessageType.ADDED)) {
                 String collectionName = (String) jsonFields.get(DdpMessageField.COLLECTION);
                 String id = (String) jsonFields.get(DdpMessageField.ID);
-                String jsonData = /*(Map<String, Object>)*/ (String) jsonFields.get(DdpMessageField.FIELDS);
+                Map<String, Object> jsonMap = (Map<String, Object>) jsonFields.get(DdpMessageField.FIELDS);
+                String jsonData = gson.toJson(jsonMap);
                 RemoteDocumentChange documentChange = new RemoteDocumentChange(RemoteDocumentChange.ChangeType.INSERT,
                         collectionName, id, jsonData);
                 ddpRemoteStorage.changesReceived(new RemoteDocumentChange[]{documentChange});
@@ -100,7 +104,8 @@ public class DDPObserver extends DDPListener implements Observer {
             if (msgtype.equals(DdpMessageType.CHANGED)) {
                 String collectionName = (String) jsonFields.get(DdpMessageField.COLLECTION);
                 String id = (String) jsonFields.get(DdpMessageField.ID);
-                String jsonData = /*(Map<String, Object>)*/ (String) jsonFields.get(DdpMessageField.FIELDS);
+                Map<String, Object> jsonMap = (Map<String, Object>) jsonFields.get(DdpMessageField.FIELDS);
+                String jsonData = gson.toJson(jsonMap);
                 RemoteDocumentChange documentChange = new RemoteDocumentChange(RemoteDocumentChange.ChangeType.UPDATE,
                         collectionName, id, jsonData);
                 ddpRemoteStorage.changesReceived(new RemoteDocumentChange[]{documentChange});

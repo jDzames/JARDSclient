@@ -23,6 +23,7 @@ public class ExecutionRequest {
 		this.transaction = transaction;
 		id = "" + (int) Math.random()*1000000;
 		methodName = "";
+		local = false;
 	}
 
 	public boolean isCompleted() {
@@ -52,6 +53,10 @@ public class ExecutionRequest {
 		this.context = context;
 	}
 
+	void setLocal(boolean local) {
+		this.local = local;
+	}
+
 	Object[] getAttributes() {
 		return attributes;
 	}
@@ -74,6 +79,10 @@ public class ExecutionRequest {
 
 	TransactionRunnable getRunnable() {
 		return runnable;
+	}
+
+	boolean isLocal() {
+		return local;
 	}
 }
 

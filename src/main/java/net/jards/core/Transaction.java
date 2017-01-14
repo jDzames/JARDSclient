@@ -1,8 +1,14 @@
 package net.jards.core;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class Transaction {
 
 	private final Storage storage;
+
+	private final Map<String, Document> localChanges = new HashMap<>();
 
 	Transaction(Storage storage) {
 		this.storage = storage;
@@ -13,7 +19,11 @@ public class Transaction {
 	 */
 	
 	Document insert(Collection collection, Document document) {
-		// storage -> localStorage -> sql/string/...
+		// storage -> localStorage -> sql/string/... ale nemenim databazu (iba ak je to local?)
+		String jsonData = document.getJsonData();
+		document = new Document(collection, UUID.randomUUID());
+		document.setJsonData(jsonData);
+		localChanges.put(document.getUuid().toString(), document);
 		return null;
 	}
 	
@@ -26,7 +36,7 @@ public class Transaction {
 	}
 
 
-	public boolean checkIfInThreadForDBRuns() {
+	boolean checkIfInThreadForDBRuns() {
 		return storage.sameAsThreadForLocalDBRuns(Thread.currentThread());
 	}
 

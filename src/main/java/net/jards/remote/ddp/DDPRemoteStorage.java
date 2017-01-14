@@ -37,6 +37,7 @@ public class DDPRemoteStorage extends RemoteStorage {
 
 		try {
 			ddpClient = new DDPClient(serverAdress, serverPort);
+
 			ddpObserver = new DDPObserver(this);
 			ddpClient.addObserver(ddpObserver);
 			ddpClient.connect();

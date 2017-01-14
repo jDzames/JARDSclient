@@ -6,8 +6,6 @@ import junit.framework.TestSuite;
 import net.jards.local.sqlite.SQLiteLocalStorage;
 import net.jards.remote.ddp.DDPRemoteStorage;
 
-import java.util.UUID;
-
 /**
  * Unit test for simple App.
  */
@@ -39,11 +37,43 @@ public class AppTest
     {
 
         StorageSetup storageSetup = new StorageSetup();
-        RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, "localhost/meteor");
+        RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, "localhost");
         LocalStorage localStorage = new SQLiteLocalStorage(storageSetup);
         Storage storage = new Storage(storageSetup, remoteStorage, localStorage);
+        storage.start("");
 
-        Document d = new Document(storage.getCollection("example"), UUID.randomUUID());
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        storage.subscribe("tasks");
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         assertTrue( true );
     }
 }
+
+
+
+/*
+            Object[] methodArgs = new Object[1];
+			UsernameAuth auth = new UsernameAuth("testik", "testik");
+			methodArgs[0] = auth;
+			int methodId = ddp.call("login", methodArgs, obs);
+			System.out.println("Login id  =  "+methodId);
+
+
+			Thread.sleep(1000);
+			//System.out.println(obs.mCollections.toString());
+			methodArgs = new Object[1];
+			methodArgs[0] = "Pridany cez Javuuuuu";
+			int callId = ddp.call("tasks.insert", methodArgs);
+			System.out.println("Call id  =  "+callId);
+*/

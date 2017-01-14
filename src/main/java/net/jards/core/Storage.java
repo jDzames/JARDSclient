@@ -27,11 +27,22 @@ public class Storage {
 					}
 					request = pendingRequests.poll();
 				}
+				if (request == null){
+					//TODO
+					continue;
+				}
 				ExecutionContext context = request.getContext();
 				Transaction transaction = request.getTransaction();
 				Object[] arguments = request.getAttributes();
 				TransactionRunnable runnable = request.getRunnable();
 				runnable.run(context, transaction, arguments);
+
+				if (!request.isLocal()){
+					synchronized (unconfirmedRequests){
+						unconfirmedRequests.offer(request);
+						unconfirmedRequests.notify();
+					}
+				}
 			}
 		}
 	}
@@ -52,11 +63,13 @@ public class Storage {
 	public Storage(StorageSetup setup, RemoteStorage remoteStorage, LocalStorage localStorage) {
 		this.remoteStorage = remoteStorage;
 		this.localStorage = localStorage;
+		System.out.println("listener");
 		remoteStorage.setListener(new RemoteStorageListener() {
 
 			public void requestCompleted(ExecutionRequest request, Object result) {
 				// TODO Auto-generated method stub
-
+				//odstranit request z unconfirmed...
+				System.out.println("REQUEST COMPLETED");
 			}
 
 			public void changesReceived(RemoteDocumentChange[] changes) {
@@ -84,6 +97,7 @@ public class Storage {
 				
 			}
 		});
+		System.out.println("listener ready");
 
 		//TODO session state
 		remoteStorage.start("");
@@ -170,20 +184,27 @@ public class Storage {
 		// ked sa call vykona, transakcia sa vyhodi zo zoznamu transakcii (jej
 		// zmeny sa ignoruju).
 
-		if (!speculativeMethods.containsKey(methodName)){
-			//TODO error?
-			return null;
-		}
-		TransactionRunnable methodRunnable = speculativeMethods.get(methodName);
 		Transaction transaction = new Transaction(this);
 		ExecutionRequest executionRequest = new ExecutionRequest(transaction);
-		executionRequest.setRunnable(methodRunnable);
+
+		if (speculativeMethods.containsKey(methodName)){
+			TransactionRunnable methodRunnable = speculativeMethods.get(methodName);
+			executionRequest.setRunnable(methodRunnable);
+		}
+
 		executionRequest.setAttributes(arguments);
 		executionRequest.setContext(new DefaultExecutionContext(this));
 
-		synchronized (pendingRequests) {
-			pendingRequests.offer(new ExecutionRequest(null));
-			pendingRequests.notify();
+		if (executionRequest.getRunnable() == null) {
+			synchronized (unconfirmedRequests) {
+				unconfirmedRequests.offer(new ExecutionRequest(null));
+				unconfirmedRequests.notify();
+			}
+		} else {
+			synchronized (pendingRequests) {
+				pendingRequests.offer(new ExecutionRequest(null));
+				pendingRequests.notify();
+			}
 		}
 
 		return executionRequest;

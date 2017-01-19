@@ -5,7 +5,6 @@ package net.jards.core;
  * RemoteStorage in order optimize execution.
  */
 public class StorageSetup {
-
 	/*
 	 * Tu sa definuju pouzivane kolekcie, v ramci kolekcii zaznamy, co ma byt
 	 * indexovane, ...

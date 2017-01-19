@@ -23,7 +23,7 @@ public class DDPObserver extends DDPListener implements Observer {
 
 
     public STATE mDdpState;
-    public String mSessionId;
+    public String mSession;
     private String mToken;
     private String mUserId;
     public String mPingId;
@@ -64,8 +64,8 @@ public class DDPObserver extends DDPListener implements Observer {
             }
             if (msgtype.equals(DdpMessageType.CONNECTED)) {
                 mDdpState = STATE.Connected;
-                mSessionId = (String) jsonFields.get(DdpMessageField.SESSION);
-                this.ddpRemoteStorage.connectionChanged(new Connection(STATE.Connected, mSessionId, null, null, null));
+                mSession = (String) jsonFields.get(DdpMessageField.SESSION);
+                this.ddpRemoteStorage.connectionChanged(new Connection(STATE.Connected, mSession, null, null, null));
             }
             if (msgtype.equals(DdpMessageType.CLOSED)) {
                 mDdpState = STATE.Closed;
@@ -132,7 +132,7 @@ public class DDPObserver extends DDPListener implements Observer {
                 }
             }
             if (msgtype.equals(DdpMessageType.RESULT)) {
-                int methodId = (Integer) jsonFields.get(DdpMessageField.ID);
+                int methodId = Integer.parseInt((String) jsonFields.get(DdpMessageField.ID));
                 Map<String, Object> resultFields = (Map<String, Object>) jsonFields.get(DdpMessageField.RESULT);
                 if (resultFields.containsKey("token")) {
                     // it was login method
@@ -153,7 +153,7 @@ public class DDPObserver extends DDPListener implements Observer {
                 ddpRemoteStorage.requestCompleted(methodId, resultFields);
             }
             if (msgtype.equals(DdpMessageType.UPDATED)) {
-                int[] methods = (int[]) jsonFields.get(DdpMessageField.METHODS);
+                ArrayList<String> methods = (ArrayList<String>) jsonFields.get(DdpMessageField.METHODS);
                 //TODO something to do here?
             }
             if (msgtype.equals(DdpMessageType.PING)) {

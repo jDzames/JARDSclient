@@ -2,7 +2,10 @@ package net.jards.core;
 
 import net.jards.errors.Error;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
 
 /**
  * Transparent storage implementation that combines data from local and remote
@@ -63,24 +66,22 @@ public class Storage {
 	public Storage(StorageSetup setup, RemoteStorage remoteStorage, LocalStorage localStorage) {
 		this.remoteStorage = remoteStorage;
 		this.localStorage = localStorage;
-		System.out.println("listener");
 		remoteStorage.setListener(new RemoteStorageListener() {
 
-			public void requestCompleted(ExecutionRequest request, Object result) {
+            public void requestCompleted(ExecutionRequest request, Object result) {
 				// TODO Auto-generated method stub
 				//odstranit request z unconfirmed...
-				System.out.println("REQUEST COMPLETED");
+				System.out.println("REQUEST COMPLETED --- "+request.getMethodName());
 			}
 
 			public void changesReceived(RemoteDocumentChange[] changes) {
 				// TODO Auto-generated method stub
-				System.out.println("--- V STORAGE ---  "+Arrays.toString(changes));
+				System.out.println("DATA V STORAGE ---  "+changes[0].getType()+"  "+changes[0].getData());
 			}
 
 			public void connectionChanged(Connection connection) {
-				// TODO Auto-generated method stub
-				
-			}
+                System.out.println("CONNECTION CHANGED ---"+connection.getState());
+            }
 
 			@Override
 			public void unsubscribed(String subscriptionName, Error error) {
@@ -97,7 +98,6 @@ public class Storage {
 				
 			}
 		});
-		System.out.println("listener ready");
 
 		//TODO session state
 		remoteStorage.start("");
@@ -194,6 +194,8 @@ public class Storage {
 
 		executionRequest.setAttributes(arguments);
 		executionRequest.setContext(new DefaultExecutionContext(this));
+
+		remoteStorage.call(methodName, arguments, "", executionRequest);
 
 		if (executionRequest.getRunnable() == null) {
 			synchronized (unconfirmedRequests) {

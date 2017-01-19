@@ -4,6 +4,7 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import net.jards.local.sqlite.SQLiteLocalStorage;
+import net.jards.remote.ddp.DDPConnectionSettings;
 import net.jards.remote.ddp.DDPRemoteStorage;
 
 /**
@@ -30,14 +31,13 @@ public class AppTest
         return new TestSuite( AppTest.class );
     }
 
-    /**
-     * Rigourous Test :-)
-     */
+
     public void testApp()
     {
 
         StorageSetup storageSetup = new StorageSetup();
-        RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, "localhost");
+        DDPConnectionSettings connectionSettings = new DDPConnectionSettings("localhost", 3000, DDPConnectionSettings.LoginType.Username, "testik", "testik");
+        RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, connectionSettings);
         LocalStorage localStorage = new SQLiteLocalStorage(storageSetup);
         Storage storage = new Storage(storageSetup, remoteStorage, localStorage);
         storage.start("");
@@ -56,9 +56,24 @@ public class AppTest
             e.printStackTrace();
         }
 
+        /*Object[] methodArgs = new Object[1];
+        methodArgs[0] = "Pridany cez DDP!!";*/
+		//storage.callAsync("tasks.insert", "Pridany cez DDP!!");
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         assertTrue( true );
     }
 }
+
+
+
+
+
 
 
 
@@ -77,3 +92,6 @@ public class AppTest
 			int callId = ddp.call("tasks.insert", methodArgs);
 			System.out.println("Call id  =  "+callId);
 */
+/**
+ * Rigourous Test :-)
+ */

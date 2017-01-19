@@ -13,14 +13,14 @@ public class Connection {
     }
 
     private STATE state;
-    private String sessionId;
+    private String session;
     private Integer code;
     private String reason;
     private Boolean remote;
 
     public Connection(STATE state, String sessionId, Integer code, String reason, Boolean remote){
         this.state = state;
-        this.sessionId = sessionId;
+        this.session = sessionId;
         this.code = code;
         this.reason = reason;
         this.remote = remote;
@@ -38,8 +38,8 @@ public class Connection {
         return reason;
     }
 
-    public String getSessionId() {
-        return sessionId;
+    public String getSession() {
+        return session;
     }
 
     public Boolean isRemote() {

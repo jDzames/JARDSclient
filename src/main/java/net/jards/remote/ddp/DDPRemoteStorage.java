@@ -1,6 +1,8 @@
 package net.jards.remote.ddp;
 
 import com.keysolutions.ddpclient.DDPClient;
+import com.keysolutions.ddpclient.TokenAuth;
+import com.keysolutions.ddpclient.UsernameAuth;
 import net.jards.core.*;
 import net.jards.errors.Error;
 
@@ -10,30 +12,53 @@ import java.util.Map;
 
 public class DDPRemoteStorage extends RemoteStorage {
 
-	private String serverAdress;
-	private int serverPort = 3000;
-	private DDPClient ddpClient;
-	private Map<String, DDPSubscription> subscriptions;
-	private Map<Integer, ExecutionRequest> methods;
-	private DDPObserver ddpObserver;
-	private RemoteStorageListener remoteStorageListener;
+	private final String serverAdress;
+	private final int serverPort;
+    private final DDPConnectionSettings.LoginType loginType;
+    private final String resumeToken;
+    private final String userName;
+    private final String email;
+    private final String password;
+    private String session;
 
-	public DDPRemoteStorage(StorageSetup storageSetup, String serverAdress){
-		this.serverAdress = serverAdress;
+    private DDPClient ddpClient;
+    private DDPObserver ddpObserver;
+    private RemoteStorageListener remoteStorageListener;
+
+	private final Map<String, DDPSubscription> subscriptions;
+	private final Map<Integer, ExecutionRequest> methods;
+
+
+    public DDPRemoteStorage(StorageSetup storageSetup, DDPConnectionSettings connectionSettings){
+		this.serverAdress = connectionSettings.getServerAdress();
+        this.serverPort = connectionSettings.getServerPort();
+        this.loginType = connectionSettings.getLoginType();
+        this.resumeToken = connectionSettings.getResumeToken();
+        this.userName = connectionSettings.getUserName();
+        this.email = connectionSettings.getEmail();
+        this.password = connectionSettings.getPassword();
+
 		subscriptions = new HashMap<>();
 		methods = new HashMap<>();
+        session = null;
 	}
 
-	public DDPRemoteStorage(StorageSetup storageSetup, String serverAdress, int serverPort){
-		this.serverAdress = serverAdress;
-		this.serverPort = serverPort;
-		subscriptions = new HashMap<>();
-		methods = new HashMap<>();
-	}
+    public DDPRemoteStorage(StorageSetup storageSetup, DDPConnectionSettings connectionSettings, String session){
+        this.serverAdress = connectionSettings.getServerAdress();
+        this.serverPort = connectionSettings.getServerPort();
+        this.loginType = connectionSettings.getLoginType();
+        this.resumeToken = connectionSettings.getResumeToken();
+        this.userName = connectionSettings.getUserName();
+        this.email = connectionSettings.getEmail();
+        this.password = connectionSettings.getPassword();
+
+        subscriptions = new HashMap<>();
+        methods = new HashMap<>();
+        this.session = session;
+    }
 
 	@Override
 	protected void start(String sessionState) {
-		// TODO Auto-generated method stub
 
 		try {
 			ddpClient = new DDPClient(serverAdress, serverPort);
@@ -41,6 +66,10 @@ public class DDPRemoteStorage extends RemoteStorage {
 			ddpObserver = new DDPObserver(this);
 			ddpClient.addObserver(ddpObserver);
 			ddpClient.connect();
+
+            //TODO session - ako to poslat serveru?
+            // https://forums.meteor.com/t/meteor-passing-session-values-from-client-to-server/5716
+
 
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
@@ -51,13 +80,13 @@ public class DDPRemoteStorage extends RemoteStorage {
 	@Override
 	public void stop() {
 		//TODO unsubscribe all subscriptions and such?
-		ddpClient.disconnect();
+        ddpClient.disconnect();
 	}
 
 	@Override
 	protected Subscription subscribe(String subscriptionName, Object... arguments) {
 		// TODO Auto-generated method stub
-		int subId = ddpClient.subscribe(subscriptionName, new Object[]{});
+		int subId = ddpClient.subscribe(subscriptionName, arguments); //new Object[]{});
 		DDPSubscription subscription = new DDPSubscription(this, subscriptionName, subId, false);
 		subscriptions.put(subscriptionName, subscription);
 		ddpObserver.addSubscription(subId, subscription);
@@ -118,6 +147,14 @@ public class DDPRemoteStorage extends RemoteStorage {
 	}
 
 	protected void connectionChanged(Connection connection){
+        //If I connected, get session
+        if (connection.getState() == Connection.STATE.Connected ){
+            this.session = connection.getSession();
+            //If I just connected and also I have login parametres, then login now.
+            if (loginType != DDPConnectionSettings.LoginType.NoLogin){
+                login();
+            }
+        }
 		this.remoteStorageListener.connectionChanged(connection);
 	}
 
@@ -129,6 +166,26 @@ public class DDPRemoteStorage extends RemoteStorage {
 	protected void onError(Error error){
 		this.remoteStorageListener.onError(error);
 	}
+
+
+    /**
+     * Help method for login.
+     */
+    private void login(){
+        if (loginType == DDPConnectionSettings.LoginType.NoLogin){
+            return;
+        } else if (loginType == DDPConnectionSettings.LoginType.Token){
+            //TODO token pride po prvom prihlaseni v result sprave, je to string potom ked som ulozil
+            TokenAuth tokenAuth = new TokenAuth(this.resumeToken);
+
+        } else if (loginType == DDPConnectionSettings.LoginType.Username){
+            UsernameAuth usernameAuth = new UsernameAuth(this.userName, this.password);
+            Object[] methodArgs = new Object[]{usernameAuth};
+            ddpClient.call("login", methodArgs);
+        } else if (loginType == DDPConnectionSettings.LoginType.Email){
+
+        }
+    }
 
 }
 

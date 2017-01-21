@@ -1,6 +1,7 @@
 package net.jards.remote.ddp;
 
 import com.keysolutions.ddpclient.DDPClient;
+import com.keysolutions.ddpclient.EmailAuth;
 import com.keysolutions.ddpclient.TokenAuth;
 import com.keysolutions.ddpclient.UsernameAuth;
 import net.jards.core.*;
@@ -133,9 +134,12 @@ public class DDPRemoteStorage extends RemoteStorage {
 	}
 
 
-	protected void requestCompleted(int methodId, Object result){
-		this.remoteStorageListener.requestCompleted(methods.get(methodId), result);
-		methods.remove(methodId);
+	protected void requestCompleted(String methodId, Object result){
+        Integer methodIdInt = Integer.parseInt(methodId);
+        if (methods.containsKey(methodIdInt)){
+            this.remoteStorageListener.requestCompleted(methods.get(methodIdInt), result);
+            methods.remove(methodIdInt);
+        }
 	}
 
 	protected void changesReceived(RemoteDocumentChange[] changes){
@@ -177,13 +181,16 @@ public class DDPRemoteStorage extends RemoteStorage {
         } else if (loginType == DDPConnectionSettings.LoginType.Token){
             //TODO token pride po prvom prihlaseni v result sprave, je to string potom ked som ulozil
             TokenAuth tokenAuth = new TokenAuth(this.resumeToken);
-
+            Object[] methodArgs = new Object[]{tokenAuth};
+            ddpClient.call("login", methodArgs);
         } else if (loginType == DDPConnectionSettings.LoginType.Username){
             UsernameAuth usernameAuth = new UsernameAuth(this.userName, this.password);
             Object[] methodArgs = new Object[]{usernameAuth};
             ddpClient.call("login", methodArgs);
         } else if (loginType == DDPConnectionSettings.LoginType.Email){
-
+            EmailAuth emailAuth = new EmailAuth(this.email, this.password);
+            Object[] methodArgs = new Object[]{emailAuth};
+            ddpClient.call("login", methodArgs);
         }
     }
 

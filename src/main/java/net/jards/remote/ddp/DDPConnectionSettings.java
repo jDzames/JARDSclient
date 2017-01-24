@@ -1,7 +1,7 @@
 package net.jards.remote.ddp;
 
 /**
- * Created by jDzama on 17.1.2017.
+ * Class which provides information and settings for connecting to server
  */
 public class DDPConnectionSettings{
 
@@ -12,7 +12,7 @@ public class DDPConnectionSettings{
         NoLogin
     }
 
-    private final String serverAdress;
+    private final String serverAddress;
     private final int serverPort;
     private final LoginType loginType;
     private final String userName;
@@ -20,8 +20,13 @@ public class DDPConnectionSettings{
     private final String password;
     private final String resumeToken;
 
-    public DDPConnectionSettings(String serverAdress, int serverPort) {
-        this.serverAdress = serverAdress;
+    /**
+     * Creates DDPConnectionSettings with server adress and port
+     * @param serverAddress address to server
+     * @param serverPort port where server listens
+     */
+    public DDPConnectionSettings(String serverAddress, int serverPort) {
+        this.serverAddress = serverAddress;
         this.serverPort = serverPort;
         this.userName = null;
         this.email = null;
@@ -30,8 +35,15 @@ public class DDPConnectionSettings{
         this.loginType = LoginType.NoLogin;
     }
 
-    public DDPConnectionSettings(String serverAdress, int serverPort, LoginType loginType, String login, String password) {
-        this.serverAdress = serverAdress;
+    /** Consctructor providing server adress, port, LoginType which can be username or email and login and password
+     * @param serverAddress adress of server
+     * @param serverPort server port
+     * @param loginType login type - this constructor accepts username or password
+     * @param login login String
+     * @param password possword to login
+     */
+    public DDPConnectionSettings(String serverAddress, int serverPort, LoginType loginType, String login, String password) {
+        this.serverAddress = serverAddress;
         this.serverPort = serverPort;
         if(loginType == LoginType.Username) {
             this.userName = login;
@@ -49,8 +61,14 @@ public class DDPConnectionSettings{
         this.loginType = loginType;
     }
 
-    public DDPConnectionSettings(String serverAdress, int serverPort, String resumeToken) {
-        this.serverAdress = serverAdress;
+    /**
+     * Constructer which uses token for login.
+     * @param serverAddress address of server
+     * @param serverPort server port
+     * @param resumeToken token for login
+     */
+    public DDPConnectionSettings(String serverAddress, int serverPort, String resumeToken) {
+        this.serverAddress = serverAddress;
         this.serverPort = serverPort;
         this.userName = null;
         this.email = null;
@@ -75,8 +93,8 @@ public class DDPConnectionSettings{
         return resumeToken;
     }
 
-    public String getServerAdress() {
-        return serverAdress;
+    public String getServerAddress() {
+        return serverAddress;
     }
 
     public String getUserName() {

@@ -135,11 +135,12 @@ public class DDPObserver extends DDPListener implements Observer {
                 int methodId = Integer.parseInt((String) jsonFields.get(DdpMessageField.ID));
                 Map<String, Object> resultFields = (Map<String, Object>) jsonFields.get(DdpMessageField.RESULT);
                 if (resultFields.containsKey("token")) {
-                    // it was login method
+                    // it was login method (nie iste!)
                     mToken = (String) resultFields.get("token");
                     mUserId = (String) resultFields.get("id");
+                    //
                     mDdpState = STATE.LoggedIn;
-                    //ddpRemoteStorage.connectionChanged(new Connection(STATE.LoggedIn, null, null, null, null));
+                    ddpRemoteStorage.connectionChanged(new Connection(STATE.LoggedIn, null, null, null, null));
                 }
                 if (jsonFields.containsKey("error")) {
                     Map<String, Object> error = (Map<String, Object>) jsonFields.get(DdpMessageField.ERROR);
@@ -150,7 +151,9 @@ public class DDPObserver extends DDPListener implements Observer {
                     ddpRemoteStorage.onError(new DefaultError(-1, "server", mErrorMsg));
                 }
                 methods.remove(methodId);
-                ddpRemoteStorage.requestCompleted(methodId, resultFields);
+                //Library has probably problem when you send id from here somewhere else. No idea why
+                //but next row produces error if id is not sended through other object (string here).
+                ddpRemoteStorage.requestCompleted(""+methodId, resultFields);
             }
             if (msgtype.equals(DdpMessageType.UPDATED)) {
                 ArrayList<String> methods = (ArrayList<String>) jsonFields.get(DdpMessageField.METHODS);

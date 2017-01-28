@@ -57,11 +57,32 @@ public class AppTest
         }
 
         /*Object[] methodArgs = new Object[1];
-        methodArgs[0] = "Pridany cez DDP!!";*/
-		//storage.callAsync("tasks.insert", "Pridany cez DDP!!");
+        methodArgs[0] = "Pridany cez DDP 2";*/
+		//storage.callAsync("tasks.insert", "Pridany cez DDP 3");
+        //storage.executeAsync(new TransactionRunnableTest());
 
         try {
             Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        storage.executeAsync(new TransactionRunnableTest());
+
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            Thread.sleep(10000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

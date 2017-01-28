@@ -5,7 +5,6 @@ import com.keysolutions.ddpclient.EmailAuth;
 import com.keysolutions.ddpclient.TokenAuth;
 import com.keysolutions.ddpclient.UsernameAuth;
 import net.jards.core.*;
-import net.jards.errors.Error;
 
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -117,8 +116,12 @@ public class DDPRemoteStorage extends RemoteStorage {
      */
     @Override
 	protected Subscription subscribe(String subscriptionName, Object... arguments) {
-		int subId = ddpClient.subscribe(subscriptionName, arguments); //new Object[]{});
-		DDPSubscription subscription = new DDPSubscription(this, subscriptionName, subId, false);
+        //if I am connected to server already, I can subscribe
+        /*if (ddpObserver.getmDdpState() == Connection.STATE.Connected ||
+                ddpObserver.getmDdpState() == Connection.STATE.LoggedIn)*/
+        int subId = ddpClient.subscribe(subscriptionName, arguments); //new Object[]{});
+
+		DDPSubscription subscription = new DDPSubscription(this, subscriptionName, subId, arguments, false);
 		subscriptions.put(subscriptionName, subscription);
 		ddpObserver.addSubscription(subId, subscription);
 		return subscription;
@@ -169,9 +172,20 @@ public class DDPRemoteStorage extends RemoteStorage {
      */
     @Override
 	protected void applyChanges(DocumentChanges changes, ExecutionRequest request) {
-		// TODO spravit
+        //http://stackoverflow.com/questions/31631810/access-denied-403-when-updating-user-accounts-client-side-in-meteor
 
-		//ddpClient.collectionInsert(); ...
+		// Added documents
+        for (Document document :changes.getAddedDocuments()) {
+            String collectionName = document.getCollection().getName();
+            Map<String, Object> documentMap = new HashMap<>();
+            documentMap.put("id", document.getUuid());
+            documentMap.put("collection", collectionName);
+            documentMap.put("jsonData", document.getJsonData());
+            System.out.println("POSIELAM INSERT 1");
+            ddpClient.collectionInsert(collectionName, documentMap);
+        }
+        //TODO updated an removed
+
 	}
 
     /**
@@ -182,6 +196,11 @@ public class DDPRemoteStorage extends RemoteStorage {
 	public String getSessionState() {
 		return this.session;
 	}
+
+    @Override
+    public IdGenerator getIdGenerator(String seed) {
+        return new DDPIdGenerator(seed);
+    }
 
     /**
      * Method called when this subscription becomes ready (all data first time arrived into the client)
@@ -196,13 +215,12 @@ public class DDPRemoteStorage extends RemoteStorage {
     /**
      * Called when result message from server comes. It is sent into attached RemoteStorageListener.
      * @param methodId id of method
-     * @param result result, null if server returned nothing
      */
-    protected void requestCompleted(String methodId, Object result){
-        Integer methodIdInt = Integer.parseInt(methodId);
-        if (methods.containsKey(methodIdInt)){
-            this.remoteStorageListener.requestCompleted(methods.get(methodIdInt), result);
-            methods.remove(methodIdInt);
+    protected void requestCompleted(Integer methodId){
+        //Integer methodIdInt = Integer.parseInt(methodId);
+        if (methods.containsKey(methodId)){
+            this.remoteStorageListener.requestCompleted(methods.get(methodId));
+            methods.remove(methodId);
         }
 	}
 
@@ -228,12 +246,17 @@ public class DDPRemoteStorage extends RemoteStorage {
      */
     protected void connectionChanged(Connection connection){
         //If I connected, get session
-        if (connection.getState() == Connection.STATE.Connected ){
+        if (connection.getState() == Connection.STATE.Connected &&
+                connection.getCode() == Connection.CONNECTED_AFTER_BEING_DISCONNECTED){
             this.session = connection.getSession();
             //If I just connected and also I have login parametres, then login now.
             if (loginType != DDPConnectionSettings.LoginType.NoLogin){
                 login();
             }
+            //I subscribe to all subscriptions (and set their id, cause it can change)
+            subscriptions.forEach((subName, sub) ->
+                sub.setId(ddpClient.subscribe(sub.getSubscriptionName(), sub.getArguments()))
+            );
         }
 		this.remoteStorageListener.connectionChanged(connection);
 	}

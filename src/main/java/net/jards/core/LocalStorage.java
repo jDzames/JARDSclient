@@ -5,10 +5,13 @@ public abstract class LocalStorage {
 	public LocalStorage(StorageSetup storageSetup) {
 		
 	}
-	
+
+    public abstract void removeCollection(String collection);
+
+
 }
 
 /*
-* neje abstract - teda sa da vytvorit.. !!!
+*
 *
 * */

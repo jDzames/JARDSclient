@@ -18,6 +18,11 @@ public class Connection {
     private String reason;
     private Boolean remote;
 
+    /**
+     * Used in remote storage to login and subscribe to server.
+     */
+    public static final Integer CONNECTED_AFTER_BEING_DISCONNECTED = 1;
+
     public Connection(STATE state, String sessionId, Integer code, String reason, Boolean remote){
         this.state = state;
         this.session = sessionId;

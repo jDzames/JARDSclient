@@ -1,7 +1,5 @@
 package net.jards.core;
 
-import net.jards.errors.Error;
-
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -23,29 +21,47 @@ public class Storage {
 			while (true) {
 				ExecutionRequest request = null;
 				synchronized (pendingRequests) {
-					try {
-						pendingRequests.wait();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
+                    while (pendingRequests.isEmpty()){
+                        try {
+                            pendingRequests.wait();
+					    } catch (InterruptedException e) {
+						    e.printStackTrace();
+					    }
+                    }
 					request = pendingRequests.poll();
 				}
 				if (request == null){
 					//TODO
 					continue;
 				}
+                System.out.println("POSIELAM INSERT 3");
 				ExecutionContext context = request.getContext();
 				Transaction transaction = request.getTransaction();
 				Object[] arguments = request.getAttributes();
+                String methodName = request.getMethodName();
 				TransactionRunnable runnable = request.getRunnable();
 				runnable.run(context, transaction, arguments);
 
-				if (!request.isLocal()){
-					synchronized (unconfirmedRequests){
-						unconfirmedRequests.offer(request);
-						unconfirmedRequests.notify();
-					}
-				}
+				if (request.isLocal()){
+                    //only local execution
+
+				} else if (methodName == null || methodName == ""){
+                    //execute locally, send changes to server
+                    /*DocumentChanges changes = new DocumentChanges();
+                    Collection c = new Collection("tasks", false, transaction.getStorage());
+                    Document d = new Document(c, UUID.randomUUID());
+                    d.setJsonData("Pridany cez execute a applyChanges 1 ");
+                    changes.addDocument(d);
+                    remoteStorage.applyChanges(changes, request);*/
+                } else {
+                    //speculative execution (method called on server)
+                    synchronized (unconfirmedRequests){
+                        unconfirmedRequests.offer(request);
+                        unconfirmedRequests.notify();
+                    }
+                }
+
+
 			}
 		}
 	}
@@ -63,12 +79,12 @@ public class Storage {
 
 	private final Object lock = new Object();
 
-	public Storage(StorageSetup setup, RemoteStorage remoteStorage, LocalStorage localStorage) {
+	public Storage(StorageSetup setup, RemoteStorage remoteStorage, final LocalStorage localStorage) {
 		this.remoteStorage = remoteStorage;
 		this.localStorage = localStorage;
 		remoteStorage.setListener(new RemoteStorageListener() {
 
-            public void requestCompleted(ExecutionRequest request, Object result) {
+            public void requestCompleted(ExecutionRequest request) {
 				// TODO Auto-generated method stub
 				//odstranit request z unconfirmed...
 				System.out.println("REQUEST COMPLETED --- "+request.getMethodName());
@@ -76,7 +92,7 @@ public class Storage {
 
 			public void changesReceived(RemoteDocumentChange[] changes) {
 				// TODO Auto-generated method stub
-				System.out.println("DATA V STORAGE ---  "+changes[0].getType()+"  "+changes[0].getData());
+				//System.out.println("DATA V STORAGE ---  "+changes[0].getType()+"  "+changes[0].getData());
 			}
 
 			public void connectionChanged(Connection connection) {
@@ -94,8 +110,7 @@ public class Storage {
 			}
 
 			public void collectionInvalidated(String collection) {
-				// TODO Auto-generated method stub
-				
+				localStorage.removeCollection(collection);
 			}
 		});
 
@@ -145,7 +160,9 @@ public class Storage {
 	}
 
 	public ExecutionRequest executeAsync(TransactionRunnable runnable, Object... arguments) {
-		Transaction transaction = new Transaction(this);
+        String seed = "";
+        IdGenerator idGenerator = remoteStorage.getIdGenerator(seed);
+        Transaction transaction = new Transaction(this, idGenerator);
 		ExecutionRequest executionRequest = new ExecutionRequest(transaction);
 		executionRequest.setRunnable(runnable);
 		executionRequest.setAttributes(arguments);
@@ -159,12 +176,34 @@ public class Storage {
 		return executionRequest;
 	}
 
-	public ExecutionRequest executeLocally(TransactionRunnable runnable, Object... arguments) {
-		return null;
+    /**
+     * Executes given TransactionRunnable only locally; can only use non-synchronized collections.
+     * @param runnable user given code inside
+     * @param arguments argements
+     * @return created ExecutionRequest for this execution
+     */
+    public ExecutionRequest executeLocally(TransactionRunnable runnable, Object... arguments) {
+        ExecutionRequest executionRequest = executeAsync(runnable, arguments);
+        executionRequest.await();
+        return executionRequest;
 	}
 
 	public ExecutionRequest executeLocallyAsync(TransactionRunnable runnable, Object... arguments) {
-		return null;
+        String seed = "";
+        IdGenerator idGenerator = remoteStorage.getIdGenerator(seed);
+        Transaction transaction = new Transaction(this, idGenerator);
+        ExecutionRequest executionRequest = new ExecutionRequest(transaction);
+        executionRequest.setLocal(true);
+        executionRequest.setRunnable(runnable);
+        executionRequest.setAttributes(arguments);
+        executionRequest.setContext(new DefaultExecutionContext(this));
+
+        synchronized (pendingRequests){
+            pendingRequests.offer(executionRequest);
+            pendingRequests.notify();
+        }
+
+        return executionRequest;
 	}
 
 	public ExecutionRequest call(String methodName, Object... arguments) {
@@ -184,8 +223,12 @@ public class Storage {
 		// ked sa call vykona, transakcia sa vyhodi zo zoznamu transakcii (jej
 		// zmeny sa ignoruju).
 
-		Transaction transaction = new Transaction(this);
+
+        String seed = "";
+        IdGenerator idGenerator = remoteStorage.getIdGenerator(seed);
+		Transaction transaction = new Transaction(this, idGenerator);
 		ExecutionRequest executionRequest = new ExecutionRequest(transaction);
+        executionRequest.setMethodName(methodName);
 
 		if (speculativeMethods.containsKey(methodName)){
 			TransactionRunnable methodRunnable = speculativeMethods.get(methodName);
@@ -218,6 +261,7 @@ public class Storage {
 	public void start(String sessionState) {
 		// nezabudnut poriesit stop a opatovny start
 		requestHandleThread = new RequestHandleThread();
+        new Thread(requestHandleThread).start();
 		remoteStorage.start(sessionState);
 	}
 

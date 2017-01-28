@@ -18,6 +18,8 @@ public abstract class RemoteStorage {
 
 	public abstract String getSessionState();
 
+    public abstract IdGenerator getIdGenerator(String seed);
+
 
 }
 

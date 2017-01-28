@@ -1,5 +1,7 @@
 package net.jards.core;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class Document {
@@ -57,6 +59,14 @@ public class Document {
 	void setJsonData(String jsonData) {
 		this.jsonData = jsonData;
 	}
+
+    public Map<String,Object> toMap() {
+        Map<String, Object> docMap = new HashMap<>();
+        docMap.put("id", this.uuid);
+        docMap.put("collection", this.collection);
+        docMap.put("jsonData", this.jsonData);
+        return  docMap;
+    }
 }
 
 

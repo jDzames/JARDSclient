@@ -8,6 +8,7 @@ import net.jards.core.Subscription;
 public class DDPSubscription implements Subscription {
 
     private final String subscriptionName;
+    private final Object[] arguments;
     private int id;
     private boolean ready;
     private final DDPRemoteStorage remoteStorage;
@@ -17,12 +18,14 @@ public class DDPSubscription implements Subscription {
      * @param remoteStorage RemoteStorage which subscribed for this subscription
      * @param subscriptionName name of subscription
      * @param id id of subscription
+     * @param arguments
      * @param ready ready if all subscription documents were already sent to client
      */
-    public DDPSubscription(DDPRemoteStorage remoteStorage, String subscriptionName, int id,  boolean ready) {
+    public DDPSubscription(DDPRemoteStorage remoteStorage, String subscriptionName, int id, Object[] arguments, boolean ready) {
         //remote storage for unsubscribe
         this.remoteStorage = remoteStorage;
         this.subscriptionName = subscriptionName;
+        this.arguments = arguments;
         this.id = id;
         this.ready = ready;
     }
@@ -67,5 +70,13 @@ public class DDPSubscription implements Subscription {
      */
     public int getId() {
         return id;
+    }
+
+    public Object[] getArguments() {
+        return arguments;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }

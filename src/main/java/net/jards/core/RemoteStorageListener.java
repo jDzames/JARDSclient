@@ -1,10 +1,8 @@
 package net.jards.core;
 
-import net.jards.errors.Error;
-
 public interface RemoteStorageListener {
 
-	void requestCompleted(ExecutionRequest request, Object result);
+	void requestCompleted(ExecutionRequest request);
 
 	void changesReceived(RemoteDocumentChange[] changes);
 	

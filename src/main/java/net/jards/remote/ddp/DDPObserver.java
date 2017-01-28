@@ -8,7 +8,6 @@ import com.keysolutions.ddpclient.DDPListener;
 import net.jards.core.Connection;
 import net.jards.core.RemoteDocumentChange;
 import net.jards.errors.DefaultError;
-import net.jards.errors.Error;
 
 import java.util.*;
 
@@ -22,8 +21,8 @@ import static net.jards.core.Connection.STATE;
 public class DDPObserver extends DDPListener implements Observer {
 
 
-    public STATE mDdpState;
-    public String mSession;
+    private STATE mDdpState;
+    private String mSession;
     private String mToken;
     private String mUserId;
     public String mPingId;
@@ -63,9 +62,13 @@ public class DDPObserver extends DDPListener implements Observer {
                 this.ddpRemoteStorage.onError(error);
             }
             if (msgtype.equals(DdpMessageType.CONNECTED)) {
+                Integer code = null;
+                if (mDdpState == STATE.Disconnected || mDdpState == STATE.Closed) {
+                    code = 1;
+                }
                 mDdpState = STATE.Connected;
                 mSession = (String) jsonFields.get(DdpMessageField.SESSION);
-                this.ddpRemoteStorage.connectionChanged(new Connection(STATE.Connected, mSession, null, null, null));
+                this.ddpRemoteStorage.connectionChanged(new Connection(STATE.Connected, mSession, code, null, null));
             }
             if (msgtype.equals(DdpMessageType.CLOSED)) {
                 mDdpState = STATE.Closed;
@@ -153,11 +156,16 @@ public class DDPObserver extends DDPListener implements Observer {
                 methods.remove(methodId);
                 //Library has probably problem when you send id from here somewhere else. No idea why
                 //but next row produces error if id is not sended through other object (string here).
-                ddpRemoteStorage.requestCompleted(""+methodId, resultFields);
+                //ddpRemoteStorage.requestCompleted(""+methodId, resultFields);
             }
             if (msgtype.equals(DdpMessageType.UPDATED)) {
-                ArrayList<String> methods = (ArrayList<String>) jsonFields.get(DdpMessageField.METHODS);
-                //TODO something to do here?
+                ArrayList<String> finishedMethods = (ArrayList<String>) jsonFields.get(DdpMessageField.METHODS);
+                for (String id :finishedMethods) {
+                    Integer intId = Integer.parseInt(id);
+                    methods.remove(intId);
+                    ddpRemoteStorage.requestCompleted(intId);
+                }
+
             }
             if (msgtype.equals(DdpMessageType.PING)) {
                 //should work already

@@ -3,13 +3,13 @@ package net.jards.errors;
 /**
  * Created by jDzama on 8.1.2017.
  */
-public class DefaultError implements RemoteStorageError{
+public class DefaultRemoteStorageError implements RemoteStorageError{
 
     private final String message;
     private final String source;
     private int id;
 
-    public DefaultError(int id, String source, String message){
+    public DefaultRemoteStorageError(int id, String source, String message){
         this.id = id;
         this.message = message;
         this.source = source;

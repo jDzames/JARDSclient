@@ -67,7 +67,7 @@ public class AppTest
             e.printStackTrace();
         }
 
-        storage.executeAsync(new TransactionRunnableTest());
+        //storage.executeAsync(new TransactionRunnableTest());
 
         try {
             Thread.sleep(10000);

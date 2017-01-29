@@ -1,5 +1,7 @@
 package net.jards.core;
 
+import net.jards.errors.RemoteStorageError;
+
 public interface RemoteStorageListener {
 
 	void requestCompleted(ExecutionRequest request);
@@ -10,9 +12,9 @@ public interface RemoteStorageListener {
 
 	void connectionChanged(Connection connection);
 
-	void unsubscribed(String subscriptionName, Error error);
+	void unsubscribed(String subscriptionName, RemoteStorageError error);
 
-	void onError(Error error);
+	void onError(RemoteStorageError error);
 }
 
 /*

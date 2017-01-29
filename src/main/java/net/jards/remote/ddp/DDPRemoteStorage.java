@@ -5,6 +5,7 @@ import com.keysolutions.ddpclient.EmailAuth;
 import com.keysolutions.ddpclient.TokenAuth;
 import com.keysolutions.ddpclient.UsernameAuth;
 import net.jards.core.*;
+import net.jards.errors.RemoteStorageError;
 
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -173,19 +174,38 @@ public class DDPRemoteStorage extends RemoteStorage {
     @Override
 	protected void applyChanges(DocumentChanges changes, ExecutionRequest request) {
         //http://stackoverflow.com/questions/31631810/access-denied-403-when-updating-user-accounts-client-side-in-meteor
-
-		// Added documents
+        //TODO test if it works well with ids (it should as its just "call")
+		// Add documents
         for (Document document :changes.getAddedDocuments()) {
             String collectionName = document.getCollection().getName();
             Map<String, Object> documentMap = new HashMap<>();
             documentMap.put("id", document.getUuid());
             documentMap.put("collection", collectionName);
             documentMap.put("jsonData", document.getJsonData());
-            System.out.println("POSIELAM INSERT 1");
-            ddpClient.collectionInsert(collectionName, documentMap);
+            int methodId = ddpClient.collectionInsert(collectionName, documentMap);
+            methods.put(methodId, request);
+            ddpObserver.addMethod(methodId, "collectionInsert");
         }
-        //TODO updated an removed
-
+        // Update documents
+        for (Document document :changes.getUpdatedDocuments()) {
+            String collectionName = document.getCollection().getName();
+            Map<String, Object> documentMap = new HashMap<>();
+            documentMap.put("id", document.getUuid());
+            documentMap.put("collection", collectionName);
+            documentMap.put("jsonData", document.getJsonData());
+            String docId = document.getUuid().toString();
+            int methodId = ddpClient.collectionUpdate(collectionName, docId, documentMap);
+            methods.put(methodId, request);
+            ddpObserver.addMethod(methodId, "collectionUpdate");
+        }
+        // Remove documents
+        for (Document document :changes.getRemovedDocuments()) {
+            String collectionName = document.getCollection().getName();
+            String docId = document.getUuid().toString();
+            int methodId = ddpClient.collectionDelete(collectionName, docId);
+            methods.put(methodId, request);
+            ddpObserver.addMethod(methodId, "collectionDelete");
+        }
 	}
 
     /**
@@ -266,7 +286,7 @@ public class DDPRemoteStorage extends RemoteStorage {
      * @param subscriptionName name of stopped subscription
      * @param error error (optional, might be null)
      */
-    protected void unsubscibed(String subscriptionName, Error error){
+    protected void unsubscibed(String subscriptionName, RemoteStorageError error){
 		this.subscriptions.remove(subscriptionName);
 		this.remoteStorageListener.unsubscribed(subscriptionName, error);
 	}
@@ -275,7 +295,7 @@ public class DDPRemoteStorage extends RemoteStorage {
      * Called when server sends Error to client. It is sent into attached RemoteStorageListener.
      * @param error error from server
      */
-    protected void onError(Error error){
+    protected void onError(RemoteStorageError error){
 		this.remoteStorageListener.onError(error);
 	}
 

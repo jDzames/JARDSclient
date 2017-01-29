@@ -7,7 +7,7 @@ import com.keysolutions.ddpclient.DDPClient.DdpMessageType;
 import com.keysolutions.ddpclient.DDPListener;
 import net.jards.core.Connection;
 import net.jards.core.RemoteDocumentChange;
-import net.jards.errors.DefaultError;
+import net.jards.errors.DefaultRemoteStorageError;
 
 import java.util.*;
 
@@ -58,7 +58,7 @@ public class DDPObserver extends DDPListener implements Observer {
             if (msgtype.equals(DdpMessageType.ERROR)) {
                 String mErrorSource = (String) jsonFields.get(DdpMessageField.SOURCE);
                 String mErrorMsg = (String) jsonFields.get(DdpMessageField.ERRORMSG);
-                Error error = new DefaultError(-1, mErrorSource, mErrorMsg);
+                DefaultRemoteStorageError error = new DefaultRemoteStorageError(-1, mErrorSource, mErrorMsg);
                 this.ddpRemoteStorage.onError(error);
             }
             if (msgtype.equals(DdpMessageType.CONNECTED)) {
@@ -128,7 +128,7 @@ public class DDPObserver extends DDPListener implements Observer {
                     String mErrorMsg = (String) error.get("message");
                     String mErrorType = (String) error.get("errorType");
                     String mErrorReason = (String) error.get("reason");
-                    ddpRemoteStorage.unsubscibed(subscriptionName, new DefaultError(-1, "server", mErrorMsg+", "+mErrorReason));
+                    ddpRemoteStorage.unsubscibed(subscriptionName, new DefaultRemoteStorageError(-1, "server", mErrorMsg+", "+mErrorReason));
                 } else {
                     // if there's no error, it just means a subscription was unsubscribed
                     ddpRemoteStorage.unsubscibed(subscriptionName, null);
@@ -151,7 +151,7 @@ public class DDPObserver extends DDPListener implements Observer {
                     String mErrorMsg = (String) error.get("message");
                     String mErrorType = (String) error.get("errorType");
                     String mErrorReason = (String) error.get("reason");
-                    ddpRemoteStorage.onError(new DefaultError(-1, "server", mErrorMsg));
+                    ddpRemoteStorage.onError(new DefaultRemoteStorageError(-1, "server", mErrorMsg));
                 }
                 methods.remove(methodId);
                 //Library has probably problem when you send id from here somewhere else. No idea why

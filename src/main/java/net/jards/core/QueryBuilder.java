@@ -2,11 +2,12 @@ package net.jards.core;
 
 public class QueryBuilder {
 
-	public QueryBuilder() {
 
-	}
+    //static pre build a pre RawQuery
 
-	public Query build() {
+
+
+	public static Query build() {
 		return null;
 	}
 

@@ -1,9 +1,11 @@
-package net.jards.errors;
+package net.jards.remote.ddp;
+
+import net.jards.errors.RemoteStorageError;
 
 /**
  * Created by jDzama on 8.1.2017.
  */
-public class DefaultRemoteStorageError implements RemoteStorageError{
+public class DefaultRemoteStorageError implements RemoteStorageError {
 
     private final String message;
     private final String source;

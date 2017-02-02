@@ -7,7 +7,6 @@ import com.keysolutions.ddpclient.DDPClient.DdpMessageType;
 import com.keysolutions.ddpclient.DDPListener;
 import net.jards.core.Connection;
 import net.jards.core.RemoteDocumentChange;
-import net.jards.errors.DefaultRemoteStorageError;
 
 import java.util.*;
 

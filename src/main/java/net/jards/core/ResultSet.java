@@ -11,6 +11,7 @@ public class ResultSet {
 		void resultChanged(DocumentChanges change);
 	}
 
+
 	/**
 	 * Closes the result sets.
 	 */
@@ -37,9 +38,14 @@ public class ResultSet {
 	public void removeListener(ChangeListener listener) {
 
 	}
+
+	public void addDocumentData(String id, String collectionName, String jsonData){
+        new Document();
+    }
+
 }
 
 /*
-* listenery -
+*
 *
 * */

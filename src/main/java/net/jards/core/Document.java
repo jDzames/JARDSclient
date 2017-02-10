@@ -44,6 +44,12 @@ public class Document {
 		this.uuid = uuid;
 	}
 
+    Document(Map<String, String> documentMap, Storage storage) {
+        this.collection = storage.getCollection(documentMap.get("collection"));
+        this.uuid = UUID.fromString(documentMap.get("id"));
+        this.jsonData = documentMap.get("jsondata");
+    }
+
 	public Collection getCollection() {
 		return collection;
 	}
@@ -60,13 +66,14 @@ public class Document {
 		this.jsonData = jsonData;
 	}
 
-    public Map<String,Object> toMap() {
-        Map<String, Object> docMap = new HashMap<>();
-        docMap.put("id", this.uuid);
-        docMap.put("collection", this.collection);
+    public Map<String,String> toMap() {
+        Map<String, String> docMap = new HashMap<>();
+        docMap.put("id", this.uuid.toString());
+        docMap.put("collection", this.collection.getName());
         docMap.put("jsonData", this.jsonData);
         return  docMap;
     }
+
 }
 
 

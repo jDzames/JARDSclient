@@ -18,6 +18,7 @@ public class ExecutionRequest {
 	private TransactionRunnable runnable;
 
 	private boolean local;
+    private boolean speculation;
 
 	public ExecutionRequest(Transaction transaction) {
 		this.transaction = transaction;
@@ -57,7 +58,11 @@ public class ExecutionRequest {
 		this.local = local;
 	}
 
-	Object[] getAttributes() {
+    void setSpeculation(boolean speculation) {
+        this.speculation = speculation;
+    }
+
+    Object[] getAttributes() {
 		return attributes;
 	}
 
@@ -84,6 +89,10 @@ public class ExecutionRequest {
 	boolean isLocal() {
 		return local;
 	}
+
+    boolean isSpeculation() {
+        return speculation;
+    }
 }
 
 

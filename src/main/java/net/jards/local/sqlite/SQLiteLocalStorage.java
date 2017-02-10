@@ -5,10 +5,11 @@ import net.jards.core.LocalStorage;
 import net.jards.core.Query;
 import net.jards.core.StorageSetup;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class SQLiteLocalStorage extends LocalStorage {
 
@@ -22,7 +23,8 @@ public class SQLiteLocalStorage extends LocalStorage {
         localDbAdress = ""; // storagesetup
 	}
 
-	private void connectDB() throws SqliteException {
+    @Override
+    public void connectDB() throws SqliteException {
         connection = null;
         try {
             Class.forName("org.sqlite.JDBC");
@@ -34,7 +36,7 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
-
+    @Override
 	public void addCollection(String collectionName) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
@@ -86,6 +88,7 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
+    @Override
     public String insert(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
@@ -114,6 +117,7 @@ public class SQLiteLocalStorage extends LocalStorage {
         return document.getUuid().toString();
     }
 
+    @Override
     public String update(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
@@ -140,6 +144,7 @@ public class SQLiteLocalStorage extends LocalStorage {
         return document.getUuid().toString();
     }
 
+    @Override
     public boolean remove(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
@@ -165,13 +170,54 @@ public class SQLiteLocalStorage extends LocalStorage {
         return true;
     }
 
-    public String find(Query query) throws SqliteException {
+    public List<Map<String, String>> find(Query query) throws SqliteException {
         connectDB();
-        String sql = new StringBuilder()
-                .append("select * from "+query.getCollection()).append(";")
-                .toString();
-
-        return null;
+        String sql;
+        if (query.isRawQuery()){
+            sql = query.getRawSql();
+        } else {
+            sql = new StringBuilder()
+                    .append("select * from ")
+                    .append(query.getCollection())
+                    .append(" ")
+                    .append(query.getWhere())
+                    .append(";")
+                    .toString();
+        }
+        Statement statement = null;
+        ResultSet rs = null;
+        try {
+            statement = connection.createStatement();
+            rs = statement.executeQuery(sql);
+            List<Map<String, String>> foundDocuments = new LinkedList<>();
+            while(rs.next())
+            {
+                // add one row (document)
+                Map<String, String> documentMap = new HashMap<>();
+                documentMap.put("id", rs.getString("id"));
+                documentMap.put("collection", rs.getString("collection"));
+                documentMap.put("jsondata", rs.getString("jsondata"));
+                foundDocuments.add(documentMap);
+            }
+            // return data to storage
+            return foundDocuments;
+        } catch (SQLException e) {
+            throw new SqliteException(SqliteException.QUERY_EXCEPTION,
+                    "Sqlite local database, executing query.",
+                    "Problem with executing query. \n "+e.toString());
+        } finally {
+            try {
+                if (statement != null) {
+                    statement.close();
+                }
+                if (rs != null) {
+                    rs.close();
+                }
+                connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }

@@ -1,5 +1,7 @@
 package net.jards.core;
 
+import net.jards.errors.LocalStorageException;
+
 public class Collection {
 
 	/**
@@ -33,7 +35,7 @@ public class Collection {
 		this.local = local;
 	}
 
-	public Document insert(Document document, Transaction transaction) {
+	public Document insert(Document document, Transaction transaction) throws LocalStorageException {
 		checkTransaction(transaction);
 		return transaction.insert(this, document);
 	}
@@ -80,6 +82,11 @@ public class Collection {
 	public boolean isLocal() {
 		return local;
 	}
+
+    public String getFullName() {
+        //TODO add table prefix
+        return name;
+    }
 }
 
 

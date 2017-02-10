@@ -1,5 +1,8 @@
 package net.jards.core;
 
+import net.jards.errors.RemoteStorageError;
+import net.jards.local.sqlite.SqliteException;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -11,11 +14,11 @@ import java.util.Queue;
  */
 public class Storage {
 
-	private class RequestHandleThread extends Thread {
+    private class RequestHandleThread extends Thread {
 		@Override
 		public void run() {
 
-			//Get this thread, so program can check and dont allow transactions in another.
+			//Set this thread, so program can check and dont allow transactions in another.
 			setThreadForLocalDBRuns(Thread.currentThread());
 
 			while (true) {
@@ -31,7 +34,7 @@ public class Storage {
 					request = pendingRequests.poll();
 				}
 				if (request == null){
-					//TODO
+					//TODO ?
 					continue;
 				}
                 System.out.println("POSIELAM INSERT 3");
@@ -40,10 +43,12 @@ public class Storage {
 				Object[] arguments = request.getAttributes();
                 String methodName = request.getMethodName();
 				TransactionRunnable runnable = request.getRunnable();
-				runnable.run(context, transaction, arguments);
+                if (runnable != null){
+                    runnable.run(context, transaction, arguments);
+                }
 
 				if (request.isLocal()){
-                    //only local execution
+                    //only local execution, just execute (that was done already)
 
 				} else if (methodName == null || methodName == ""){
                     //execute locally, send changes to server
@@ -99,17 +104,17 @@ public class Storage {
                 System.out.println("CONNECTION CHANGED ---"+connection.getState());
             }
 
-			@Override
-			public void unsubscribed(String subscriptionName, Error error) {
-				// TODO Auto-generated method stub
-			}
+            @Override
+            public void unsubscribed(String subscriptionName, RemoteStorageError error) {
+                // TODO Auto-generated method stub
+            }
 
-			@Override
-			public void onError(Error error) {
-				// TODO Auto-generated method stub
-			}
+            @Override
+            public void onError(RemoteStorageError error) {
+                // TODO Auto-generated method stub
+            }
 
-			public void collectionInvalidated(String collection) {
+			public void collectionInvalidated(String collection) throws SqliteException {
 				localStorage.removeCollection(collection);
 			}
 		});
@@ -136,13 +141,24 @@ public class Storage {
 	 */
 	public Collection getCollection(String name) {
 
-		//TODO from table or memory?
+		//TODO from table, pridat prefix v query
 
 		//pre testy zatial
-		return new Collection(name, false, this);
+        String collectionName = name;
+        boolean local = false;
+		return new Collection(collectionName, local, this);
 	}
 
-	public Subscription subscribe(String subscriptionName, Object... arguments) {
+
+    /*public*/ LocalStorage getLocalStorage() {
+        return localStorage;
+    }
+
+    /*public*/ RemoteStorage getRemoteStorage() {
+        return remoteStorage;
+    }
+
+    public Subscription subscribe(String subscriptionName, Object... arguments) {
 		return remoteStorage.subscribe(subscriptionName, arguments);
 	}
 
@@ -192,6 +208,7 @@ public class Storage {
         String seed = "";
         IdGenerator idGenerator = remoteStorage.getIdGenerator(seed);
         Transaction transaction = new Transaction(this, idGenerator);
+        transaction.setLocal(true);
         ExecutionRequest executionRequest = new ExecutionRequest(transaction);
         executionRequest.setLocal(true);
         executionRequest.setRunnable(runnable);
@@ -227,7 +244,9 @@ public class Storage {
         String seed = "";
         IdGenerator idGenerator = remoteStorage.getIdGenerator(seed);
 		Transaction transaction = new Transaction(this, idGenerator);
+        transaction.setSpeculation(true);
 		ExecutionRequest executionRequest = new ExecutionRequest(transaction);
+        executionRequest.setSpeculation(true);
         executionRequest.setMethodName(methodName);
 
 		if (speculativeMethods.containsKey(methodName)){

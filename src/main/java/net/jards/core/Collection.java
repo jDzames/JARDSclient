@@ -18,18 +18,20 @@ public class Collection {
 	 * Indicates whether the collection is local.
 	 */
 	private final boolean local;
+    private final String prefix;
 
-	/**
+    /**
 	 * Package protected constructor of collection.
-	 * 
-	 * @param name
-	 *            the name of collection.
-	 * @param local
-	 *            the indicator whether the collection is local.
-	 * @param storage
-	 *            the storage.
-	 */
-	Collection(String name, boolean local, Storage storage) {
+	 *
+     * @param prefix
+     * @param name
+     *            the name of collection.
+     * @param local
+*            the indicator whether the collection is local.
+     * @param storage
+     */
+	Collection(String prefix, String name, boolean local, Storage storage) {
+        this.prefix = prefix;
 		this.name = name;
 		this.storage = storage;
 		this.local = local;
@@ -40,12 +42,12 @@ public class Collection {
 		return transaction.insert(this, document);
 	}
 
-	public boolean remove(Document document, Transaction transaction) {
+	public boolean remove(Document document, Transaction transaction) throws LocalStorageException  {
 		checkTransaction(transaction);
 		return transaction.remove(this, document);
 	}
 
-	public Document update(Document document, Transaction transaction) {
+	public Document update(Document document, Transaction transaction) throws LocalStorageException  {
 		checkTransaction(transaction);
 		return transaction.update(this, document);
 	}
@@ -71,7 +73,7 @@ public class Collection {
 		return null;
 	}
 
-	public Storage getStorage() {
+	Storage getStorage() {
 		return storage;
 	}
 
@@ -83,9 +85,8 @@ public class Collection {
 		return local;
 	}
 
-    public String getFullName() {
-        //TODO add table prefix
-        return name;
+    String getFullName() {
+        return prefix+name;
     }
 }
 

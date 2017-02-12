@@ -35,7 +35,7 @@ public class AppTest
     public void testApp()
     {
 
-        StorageSetup storageSetup = new StorageSetup();
+        StorageSetup storageSetup = new StorageSetup("prefix");
         DDPConnectionSettings connectionSettings = new DDPConnectionSettings("localhost", 3000, DDPConnectionSettings.LoginType.Username, "testik", "testik");
         RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, connectionSettings);
         LocalStorage localStorage = new SQLiteLocalStorage(storageSetup);

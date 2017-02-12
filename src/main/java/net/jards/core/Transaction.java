@@ -23,14 +23,14 @@ public class Transaction {
 	 */
 	
 	Document insert(Collection collection, Document document) throws LocalStorageException {
-		// storage -> localStorage -> sql/string/... ale nemenim databazu (iba ak je to local?)
+		// storage -> localStorage -> sql/other.. insert
 
         // create document
         String jsonData = document.getJsonData();
         document = new Document(collection, idGenerator.getId());
         document.setJsonData(jsonData);
 
-        // whats sitation...
+        // whats situation...
         if (local){
             // only write, no synchronization, changes..
             // only to local collection allowed!
@@ -52,12 +52,54 @@ public class Transaction {
 		return document;
 	}
 	
-	Document update(Collection collection, Document document) {
-		return null;
+	Document update(Collection collection, Document document) throws LocalStorageException {
+        // updating document
+
+        // whats situation...
+        if (local){
+            // only write, no synchronization, changes..
+            // only to local collection allowed!
+            if (!collection.isLocal()){
+                //TODO throw new LocalStorageException();
+            }
+            LocalStorage localStorage = storage.getLocalStorage();
+            localStorage.update(collection.getFullName(), document);
+        } else if (speculation){
+            // only speculation, just put document into changes
+            localChanges.updateDocument(document);
+        } else {
+            // execute - write to db, and send changes to server
+            LocalStorage localStorage = storage.getLocalStorage();
+            localStorage.update(collection.getFullName(), document);
+            localChanges.updateDocument(document);
+        }
+
+        return document;
 	}
 	
-	boolean remove(Collection collection, Document document) {
-		return false;
+	boolean remove(Collection collection, Document document) throws LocalStorageException {
+        // removing document
+
+        // whats situation...
+        if (local){
+            // only write, no synchronization, changes..
+            // only to local collection allowed!
+            if (!collection.isLocal()){
+                //TODO throw new LocalStorageException();
+            }
+            LocalStorage localStorage = storage.getLocalStorage();
+            localStorage.remove(collection.getFullName(), document);
+        } else if (speculation){
+            // only speculation, just put document into changes
+            localChanges.removeDocument(document);
+        } else {
+            // execute - write to db, and send changes to server (document into changes)
+            LocalStorage localStorage = storage.getLocalStorage();
+            localStorage.remove(collection.getFullName(), document);
+            localChanges.removeDocument(document);
+        }
+
+        return true;
 	}
 
     Storage getStorage() {
@@ -78,6 +120,6 @@ public class Transaction {
 }
 
 /*
-* cim ine od collection metod? - tym ze tu mam Storage -> tade to do vlakna sa posle na vykonanie
+*
 *
 * */

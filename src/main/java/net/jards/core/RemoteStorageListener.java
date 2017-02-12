@@ -1,7 +1,7 @@
 package net.jards.core;
 
+import net.jards.errors.LocalStorageException;
 import net.jards.errors.RemoteStorageError;
-import net.jards.local.sqlite.SqliteException;
 
 public interface RemoteStorageListener {
 
@@ -9,7 +9,7 @@ public interface RemoteStorageListener {
 
 	void changesReceived(RemoteDocumentChange[] changes);
 	
-	void collectionInvalidated(String collection) throws SqliteException;
+	void collectionInvalidated(String collection) throws LocalStorageException;
 
 	void connectionChanged(Connection connection);
 

@@ -5,6 +5,7 @@ import com.keysolutions.ddpclient.EmailAuth;
 import com.keysolutions.ddpclient.TokenAuth;
 import com.keysolutions.ddpclient.UsernameAuth;
 import net.jards.core.*;
+import net.jards.errors.LocalStorageException;
 import net.jards.errors.RemoteStorageError;
 
 import java.net.URISyntaxException;
@@ -256,7 +257,7 @@ public class DDPRemoteStorage extends RemoteStorage {
      * Called when server confirms that collection is invalidated. It is sent into attached RemoteStorageListener.
      * @param collection
      */
-    protected void collectionInvalidated(String collection){
+    protected void collectionInvalidated(String collection) throws LocalStorageException {
 		this.remoteStorageListener.collectionInvalidated(collection);
 	}
 

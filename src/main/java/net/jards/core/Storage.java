@@ -1,7 +1,7 @@
 package net.jards.core;
 
+import net.jards.errors.LocalStorageException;
 import net.jards.errors.RemoteStorageError;
-import net.jards.local.sqlite.SqliteException;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -21,7 +21,7 @@ public class Storage {
 			//Set this thread, so program can check and dont allow transactions in another.
 			setThreadForLocalDBRuns(Thread.currentThread());
 
-			while (true) {
+			while (running) {
 				ExecutionRequest request = null;
 				synchronized (pendingRequests) {
                     while (pendingRequests.isEmpty()){
@@ -73,6 +73,7 @@ public class Storage {
 
 	private final RemoteStorage remoteStorage;
 	private final LocalStorage localStorage;
+    private final StorageSetup storageSetup;
 
 	private final Map<String, TransactionRunnable> speculativeMethods = new HashMap<String, TransactionRunnable>();
 
@@ -84,9 +85,12 @@ public class Storage {
 
 	private final Object lock = new Object();
 
+    private volatile boolean running = false;
+
 	public Storage(StorageSetup setup, RemoteStorage remoteStorage, final LocalStorage localStorage) {
 		this.remoteStorage = remoteStorage;
 		this.localStorage = localStorage;
+        storageSetup = setup;
 		remoteStorage.setListener(new RemoteStorageListener() {
 
             public void requestCompleted(ExecutionRequest request) {
@@ -114,15 +118,14 @@ public class Storage {
                 // TODO Auto-generated method stub
             }
 
-			public void collectionInvalidated(String collection) throws SqliteException {
+			public void collectionInvalidated(String collection) throws LocalStorageException {
 				localStorage.removeCollection(collection);
 			}
 		});
 
 		//TODO session state
 		remoteStorage.start("");
-
-	}
+    }
 
 	void setThreadForLocalDBRuns(Thread threadForLocalDBRuns) {
 		this.threadForLocalDBRuns = threadForLocalDBRuns;
@@ -136,19 +139,21 @@ public class Storage {
 	 * Returns document collection. If collection does not exist, it will be
 	 * created.
 	 * 
-	 * @param name
+	 * @param collectionName
 	 * @return
 	 */
-	public Collection getCollection(String name) {
-
-		//TODO from table, pridat prefix v query
+	public Collection getCollection(String collectionName) {
+        //TODO from table, pridat prefix v query
 
 		//pre testy zatial
-        String collectionName = name;
+        String prefix = storageSetup.getTablePrefix();
         boolean local = false;
-		return new Collection(collectionName, local, this);
+		return new Collection(prefix, collectionName, local, this);
 	}
 
+    public boolean isRunning() {
+        return running;
+    }
 
     /*public*/ LocalStorage getLocalStorage() {
         return localStorage;
@@ -279,8 +284,10 @@ public class Storage {
 	 */
 	public void start(String sessionState) {
 		// nezabudnut poriesit stop a opatovny start
+        running = true;
 		requestHandleThread = new RequestHandleThread();
         new Thread(requestHandleThread).start();
+        localStorage.start();
 		remoteStorage.start(sessionState);
 	}
 
@@ -288,8 +295,10 @@ public class Storage {
 	 * Stops the self-synchronizing storage.
 	 */
 	public void stop() {
+        running = false;
 		String state = remoteStorage.getSessionState();
 		remoteStorage.stop();
+        localStorage.stop(unconfirmedRequests);
 	}
 }
 

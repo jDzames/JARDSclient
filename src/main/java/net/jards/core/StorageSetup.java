@@ -5,11 +5,23 @@ package net.jards.core;
  * RemoteStorage in order optimize execution.
  */
 public class StorageSetup {
+
+
 	/*
 	 * Tu sa definuju pouzivane kolekcie, v ramci kolekcii zaznamy, co ma byt
 	 * indexovane, ...
 	 */
 
+    private String tablePrefix; //posun do local storage? cosi take?
+
+
+    public StorageSetup(String tablePrefix){
+        this.tablePrefix = tablePrefix;
+    }
+
+    String getTablePrefix() {
+        return tablePrefix;
+    }
 }
 
 /*

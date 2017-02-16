@@ -1,15 +1,11 @@
 package net.jards.local.sqlite;
 
-import net.jards.core.Document;
-import net.jards.core.LocalStorage;
-import net.jards.core.Query;
-import net.jards.core.StorageSetup;
+import net.jards.core.*;
 
+import java.sql.Connection;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.sql.ResultSet;
+import java.util.*;
 
 public class SQLiteLocalStorage extends LocalStorage {
 
@@ -22,6 +18,17 @@ public class SQLiteLocalStorage extends LocalStorage {
 		// TODO create db, tables..?
         localDbAdress = ""; // storagesetup
 	}
+
+    @Override
+    public List<ExecutionRequest> start() {
+        //TODO read requests from collection for them
+        return null;
+    }
+
+    @Override
+    public void stop(Queue<ExecutionRequest> unconfirmedRequests) {
+        //TODO save requests into collection for them
+    }
 
     @Override
     public void connectDB() throws SqliteException {
@@ -37,20 +44,45 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
     @Override
-	public void addCollection(String collectionName) throws SqliteException {
+	public void addCollection(CollectionSetup collection) throws SqliteException {
         connectDB();
+        Map<String, String> indexesMap = collection.getIndexes();
+        //index columns and sql for creatng indexes
+        StringBuilder indexesColumns = new StringBuilder();
+        StringBuilder createIndexesSql = new StringBuilder();
+        for (String index : indexesMap.keySet()) {
+            //add column for index (called as way to value in json)
+            indexesColumns.append(", ")
+                    .append(index)
+                    .append(" ")
+                    .append(indexesMap.get(index));
+            //add index (create index statement)
+            createIndexesSql.append("\n create index ")
+                    .append(index)
+                    .append("_index on ")
+                    .append(collection.getFullName())
+                    .append(" (")
+                    .append(index)
+                    .append(");");
+        }
+
+        //sql for creating table
         String sql = new StringBuilder()
                 .append("create table")
-                .append(collectionName)
-                .append(" (id varchar(36) primary key, collection text, jsondata text);")
+                .append(collection.getFullName())
+                .append(" (id varchar(36) primary key, collection text, jsondata text")
+                .append(indexesColumns)
+                .append(");")
+                .append(createIndexesSql)
                 .toString();
+
         Statement statement = null;
         try {
             statement = connection.createStatement();
             statement.execute(sql);
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.ADDING_COLLECTION_EXCEPTION,
-                    "Sqlite local database, collection "+collectionName,
+                    "Sqlite local database, collection "+collection.getName(),
                     "Problem adding collection. \n "+e.toString());
         } finally {
             try {
@@ -67,6 +99,7 @@ public class SQLiteLocalStorage extends LocalStorage {
         connectDB();
         String sql = new StringBuilder()
                 .append("drop table")
+                .append(getTablePrefix())
                 .append(collectionName)
                 .append(";")
                 .toString();
@@ -92,9 +125,11 @@ public class SQLiteLocalStorage extends LocalStorage {
     public String insert(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
-                .append("insert into ").append(collectionName)
+                .append("insert into ")
+                .append(getTablePrefix())
+                .append(collectionName)
                 .append(" values( '")
-                .append(document.getUuid()).append("', '")
+                .append(document.getId()).append("', '")
                 .append(document.getCollection()).append("', '")
                 .append(document.getJsonData()).append("');")
                 .toString();
@@ -114,16 +149,18 @@ public class SQLiteLocalStorage extends LocalStorage {
                 e.printStackTrace();
             }
         }
-        return document.getUuid().toString();
+        return document.getId().toString();
     }
 
     @Override
     public String update(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
-                .append("update ").append(collectionName)
+                .append("update ")
+                .append(getTablePrefix())
+                .append(collectionName)
                 .append(" set jsondata='").append(document.getJsonData())
-                .append("' where id='").append(document.getUuid()).append("';")
+                .append("' where id='").append(document.getId()).append("';")
                 .toString();
         Statement statement = null;
         try {
@@ -141,15 +178,19 @@ public class SQLiteLocalStorage extends LocalStorage {
                 e.printStackTrace();
             }
         }
-        return document.getUuid().toString();
+        return document.getId().toString();
     }
 
     @Override
     public boolean remove(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
-                .append("delete from ").append(collectionName)
-                .append(" where id='").append(document.getUuid()).append("';")
+                .append("delete from ")
+                .append(getTablePrefix())
+                .append(collectionName)
+                .append(" where id='")
+                .append(document.getId())
+                .append("';")
                 .toString();
         Statement statement = null;
         try {
@@ -170,6 +211,7 @@ public class SQLiteLocalStorage extends LocalStorage {
         return true;
     }
 
+    @Override
     public List<Map<String, String>> find(Query query) throws SqliteException {
         connectDB();
         String sql;
@@ -220,9 +262,9 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
-}
+    @Override
+    public Map<String, String> findOne(Query query) throws SqliteException {
+        return null;
+    }
 
-/*
-* tu realne dopyty (sql)
-*
-* */
+}

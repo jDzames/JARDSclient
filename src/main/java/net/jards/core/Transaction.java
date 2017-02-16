@@ -27,7 +27,7 @@ public class Transaction {
 
         // create document
         String jsonData = document.getJsonData();
-        document = new Document(collection, idGenerator.getId());
+        document = new Document(collection, idGenerator.getId().toString());
         document.setJsonData(jsonData);
 
         // whats situation...

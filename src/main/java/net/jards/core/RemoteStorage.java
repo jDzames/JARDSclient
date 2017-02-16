@@ -1,5 +1,9 @@
 package net.jards.core;
 
+/**
+ * Abstract class. Serves to communicate with server, makes connection and sends requests on server.
+ * If you use synchronous method which can took longer time, run it in new thread to not main program thread.
+ */
 public abstract class RemoteStorage {
 
 	protected abstract void start(String sessionState);

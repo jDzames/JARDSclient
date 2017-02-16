@@ -180,7 +180,7 @@ public class DDPRemoteStorage extends RemoteStorage {
         for (Document document :changes.getAddedDocuments()) {
             String collectionName = document.getCollection().getName();
             Map<String, Object> documentMap = new HashMap<>();
-            documentMap.put("id", document.getUuid());
+            documentMap.put("id", document.getId());
             documentMap.put("collection", collectionName);
             documentMap.put("jsonData", document.getJsonData());
             int methodId = ddpClient.collectionInsert(collectionName, documentMap);
@@ -191,10 +191,10 @@ public class DDPRemoteStorage extends RemoteStorage {
         for (Document document :changes.getUpdatedDocuments()) {
             String collectionName = document.getCollection().getName();
             Map<String, Object> documentMap = new HashMap<>();
-            documentMap.put("id", document.getUuid());
+            documentMap.put("id", document.getId());
             documentMap.put("collection", collectionName);
             documentMap.put("jsonData", document.getJsonData());
-            String docId = document.getUuid().toString();
+            String docId = document.getId().toString();
             int methodId = ddpClient.collectionUpdate(collectionName, docId, documentMap);
             methods.put(methodId, request);
             ddpObserver.addMethod(methodId, "collectionUpdate");
@@ -202,7 +202,7 @@ public class DDPRemoteStorage extends RemoteStorage {
         // Remove documents
         for (Document document :changes.getRemovedDocuments()) {
             String collectionName = document.getCollection().getName();
-            String docId = document.getUuid().toString();
+            String docId = document.getId().toString();
             int methodId = ddpClient.collectionDelete(collectionName, docId);
             methods.put(methodId, request);
             ddpObserver.addMethod(methodId, "collectionDelete");

@@ -2,7 +2,6 @@ package net.jards.core;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 public class Document {
 
@@ -14,7 +13,7 @@ public class Document {
 	/**
 	 * Identifier of document.
 	 */
-	private final UUID uuid;
+	private final String id;
 
 
 
@@ -28,7 +27,7 @@ public class Document {
 	 */
 	public Document() {
 		this.collection = null;
-		uuid = null;
+		id = null;
 	}
 
 	/**
@@ -36,17 +35,17 @@ public class Document {
 	 * 
 	 * @param collection
 	 *            the collection where the document has been inserted
-	 * @param uuid
+	 * @param id
 	 *            the identifier of the document.
 	 */
-	Document(Collection collection, UUID uuid) {
+	Document(Collection collection, String id) {
 		this.collection = collection;
-		this.uuid = uuid;
+		this.id = id;
 	}
 
     Document(Map<String, String> documentMap, Storage storage) {
         this.collection = storage.getCollection(documentMap.get("collection"));
-        this.uuid = UUID.fromString(documentMap.get("id"));
+        this.id = documentMap.get("id");
         this.jsonData = documentMap.get("jsondata");
     }
 
@@ -54,8 +53,8 @@ public class Document {
 		return collection;
 	}
 
-	public UUID getUuid() {
-		return uuid;
+	public String getId() {
+		return id;
 	}
 
 	public String getJsonData() {
@@ -68,7 +67,7 @@ public class Document {
 
     public Map<String,String> toMap() {
         Map<String, String> docMap = new HashMap<>();
-        docMap.put("id", this.uuid.toString());
+        docMap.put("id", this.id);
         docMap.put("collection", this.collection.getName());
         docMap.put("jsonData", this.jsonData);
         return  docMap;

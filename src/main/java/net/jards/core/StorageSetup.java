@@ -12,7 +12,8 @@ public class StorageSetup {
     private final Map<String, CollectionSetup> localCollections = new HashMap<>();
 
     private String tablePrefix;
-    private String dbAdress; //TODO !!!!!!!!!!!
+    private String dbAdress;
+    private JSONPropertyExtractor jsonPropertyExtractor = null;
 
 
     public StorageSetup(){
@@ -41,6 +42,25 @@ public class StorageSetup {
 
     public Map<String, CollectionSetup> getLocalCollections() {
         return localCollections;
+    }
+
+    public void setJsonPropertyExtractor(JSONPropertyExtractor jsonPropertyExtractor) {
+        this.jsonPropertyExtractor = jsonPropertyExtractor;
+    }
+
+    public void setDbAdress(String dbAdress) {
+        this.dbAdress = dbAdress;
+    }
+
+    public JSONPropertyExtractor getJsonPropertyExtractor() {
+        if (jsonPropertyExtractor == null ){
+            return new DefaultJSONPropertyExtractor();
+        }
+        return jsonPropertyExtractor;
+    }
+
+    public String getDbAdress() {
+        return dbAdress;
     }
 }
 

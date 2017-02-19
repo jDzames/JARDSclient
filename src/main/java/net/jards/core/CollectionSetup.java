@@ -1,6 +1,8 @@
 package net.jards.core;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,10 +14,9 @@ public class CollectionSetup {
     private final String name;
     private final boolean local;
 
-    /**
-     * Map of indexes. Key is index name (column name) and value is type of index. def, int, string
-     */
+    //Map and list of indexes. Key is index name (column name) and value is type of index. def, int, string. List is to have order for
     private final Map<String, String> indexes = new HashMap<>();
+    private final List<String> indexesOrder = new ArrayList<>();
 
     public CollectionSetup(String tablePrefix, String name, boolean local, String... indexes) {
         this.tablePrefix = tablePrefix;
@@ -44,6 +45,10 @@ public class CollectionSetup {
 
     public Map<String, String> getIndexes() {
         return indexes;
+    }
+
+    public List<String> getOrderedIndexes() {
+        return indexesOrder;
     }
 
     public String getFullName() {

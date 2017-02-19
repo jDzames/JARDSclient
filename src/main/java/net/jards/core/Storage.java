@@ -83,6 +83,8 @@ public class Storage {
 	private RequestHandleThread requestHandleThread;
 	private Thread threadForLocalDBRuns;
 
+    private final JSONPropertyExtractor jsonPropertyExtractor;
+
 	private final Object lock = new Object();
 
     private volatile boolean running = false;
@@ -90,6 +92,7 @@ public class Storage {
 	public Storage(StorageSetup setup, RemoteStorage remoteStorage, final LocalStorage localStorage) {
 		this.remoteStorage = remoteStorage;
 		this.localStorage = localStorage;
+        this.jsonPropertyExtractor = setup.getJsonPropertyExtractor();
         storageSetup = setup;
 		remoteStorage.setListener(new RemoteStorageListener() {
 
@@ -105,7 +108,7 @@ public class Storage {
 			}
 
 			public void connectionChanged(Connection connection) {
-                System.out.println("CONNECTION CHANGED ---"+connection.getState());
+                System.out.println("CONNECTION CHANGED: "+connection.getState());
             }
 
             @Override
@@ -115,7 +118,7 @@ public class Storage {
 
             @Override
             public void onError(RemoteStorageError error) {
-                // TODO Auto-generated method stub
+                System.out.println("ERROR: "+error.toString());
             }
 
 			public void collectionInvalidated(String collection) throws LocalStorageException {
@@ -136,19 +139,17 @@ public class Storage {
 	}
 
 	/**
-	 * Returns document collection. If collection does not exist, it will be
-	 * created.
+	 * Returns document collection. If collection have not been specified in StorageSetup, returns null.
 	 * 
-	 * @param collectionName
-	 * @return
+	 * @param collectionName name of collection
+	 * @return selected collection
 	 */
 	public Collection getCollection(String collectionName) {
-        //TODO from table, pridat prefix v query
-
-		//pre testy zatial
-        String prefix = storageSetup.getTablePrefix();
-        boolean local = false;
-		return new Collection(prefix, collectionName, local, this);
+        CollectionSetup collectionSetup = localStorage.getCollectionSetup(collectionName);
+        if (collectionSetup == null){
+            return null;
+        }
+		return new Collection(collectionSetup, this);
 	}
 
     public boolean isRunning() {

@@ -1,5 +1,6 @@
 package net.jards.core;
 
+import net.jards.errors.LocalStorageException;
 import net.jards.local.sqlite.SqliteException;
 
 import java.util.List;
@@ -11,9 +12,12 @@ public abstract class LocalStorage {
     private final String tablePrefix;
     private final Map<String, CollectionSetup> collections;
     private final CollectionSetup setupHashCollection;
+    private final int setupHash;
     //private final CollectionSetup setupCollection;
+    private final JSONPropertyExtractor jsonPropertyExtractor;
 
-	public LocalStorage(StorageSetup storageSetup) {
+	public LocalStorage(StorageSetup storageSetup) throws LocalStorageException {
+        this.jsonPropertyExtractor = storageSetup.getJsonPropertyExtractor();
 		this.tablePrefix = storageSetup.getTablePrefix();
         this.collections = storageSetup.getLocalCollections();
         //create hash from storage setup, read hash from special collection (prefix+setupCollection)
@@ -21,20 +25,21 @@ public abstract class LocalStorage {
 
         //setupCollection = new CollectionSetup(tablePrefix, "saved_setup_collection", true);
         setupHashCollection = new CollectionSetup(tablePrefix, "setup_hash_table", true);
-        int thisSetupHash = computeSetupHash(); //compute hash to be able to compare
+        //compute hash to be able to compare
+        setupHash = computeSetupHash();
 
         try{
             Map<String, String> savedSetupHashDocument = findOne(null/*query for setup_hash_collection to findOne any*/);
             int savedSetupHash = Integer.parseInt(savedSetupHashDocument.get("jsondata"));
             //compare hashes, if same, done, if different - create new collections (drop those cause prefix)
-            if (thisSetupHash != savedSetupHash){
-                //fillSetupCollection(); not used
+            if (setupHash != savedSetupHash){
+                //fillSetupCollections(); not used
                 createCollectionsFromSetup();
             }
         } catch (Exception e) {
             //table does not exist or other error, create new collections, insert into 2 special ones
             //try in method, if error - throw error, something wrong
-            //fillSetupCollection(); not used
+            //fillSetupCollections(); not used
             createCollectionsFromSetup();
         }
     }
@@ -50,7 +55,7 @@ public abstract class LocalStorage {
      * Make documents from collections and insert them into special setupCollection.
      * (Not used, cause collections are hold in map here)
      */
-    private void fillSetupCollection() {
+    private void fillSetupCollections() {
 
     }
 
@@ -58,8 +63,33 @@ public abstract class LocalStorage {
      * Local db uses this setup for the first time or user has changed it.
      * Drop old collections, add new. Also setup hash collection.
      */
-    private void createCollectionsFromSetup() {
+    private void createCollectionsFromSetup() throws LocalStorageException{
+        try {
+            connectDB();
+            for (CollectionSetup collection:collections.values()) {
+                this.removeCollection(collection);
+                this.addCollection(collection);
+            }
+            Collection hashCollection = new Collection(tablePrefix, setupHashCollection.getName(), true, null);
+            Document hashDocument = new Document(hashCollection, "0");
+            hashDocument.setJsonData(""+setupHash);
+            this.removeCollection(setupHashCollection);
+            this.addCollection(setupHashCollection);
+            this.insert(setupHashCollection.getName(), hashDocument);
+        } catch (SqliteException e) {
+            throw new SqliteException(SqliteException.SETUP_EXCEPTION,
+                    "LocalStorage, creating collections from setup",
+                    "Problem creating collections in LocalStorage. "+e.toString());
+        }
 
+    }
+
+    protected CollectionSetup getCollectionSetup(String collectionName){
+        return  collections.get(collectionName);
+    }
+
+    protected JSONPropertyExtractor getJsonPropertyExtractor() {
+        return jsonPropertyExtractor;
     }
 
     /**
@@ -81,7 +111,11 @@ public abstract class LocalStorage {
 
     public abstract void addCollection(CollectionSetup collection) throws SqliteException;
 
-    public abstract void removeCollection(String collection) throws SqliteException;
+    void removeCollection(String collectionName) throws SqliteException {
+        this.removeCollection(collections.get(collectionName));
+    }
+
+    public abstract void removeCollection(CollectionSetup collection) throws SqliteException;
 
     public abstract String insert(String collectionName, Document document) throws SqliteException;
 

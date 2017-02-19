@@ -1,6 +1,7 @@
 package net.jards.local.sqlite;
 
 import net.jards.core.*;
+import net.jards.errors.LocalStorageException;
 
 import java.sql.Connection;
 import java.sql.*;
@@ -13,21 +14,21 @@ public class SQLiteLocalStorage extends LocalStorage {
     private Connection connection;
     private final String localDbAdress;
 
-    public SQLiteLocalStorage(StorageSetup storageSetup) {
+    public SQLiteLocalStorage(StorageSetup storageSetup, String databaseConnection) throws LocalStorageException {
 		super(storageSetup);
 		// TODO create db, tables..?
-        localDbAdress = ""; // storagesetup
+        localDbAdress = databaseConnection;
 	}
 
     @Override
     public List<ExecutionRequest> start() {
-        //TODO read requests from collection for them
+        //TODO read requests from collection for them. move and do in default LocalStorage or user here?
         return null;
     }
 
     @Override
     public void stop(Queue<ExecutionRequest> unconfirmedRequests) {
-        //TODO save requests into collection for them
+        //TODO save requests into collection for them. same question.
     }
 
     @Override
@@ -35,7 +36,7 @@ public class SQLiteLocalStorage extends LocalStorage {
         connection = null;
         try {
             Class.forName("org.sqlite.JDBC");
-            connection = DriverManager.getConnection("jdbc:sqlite:test.db");
+            connection = DriverManager.getConnection(localDbAdress);
         } catch ( Exception e ) {
             System.out.println("local db connection error");
             //TODO error finish (message..)
@@ -47,10 +48,11 @@ public class SQLiteLocalStorage extends LocalStorage {
 	public void addCollection(CollectionSetup collection) throws SqliteException {
         connectDB();
         Map<String, String> indexesMap = collection.getIndexes();
+        List<String> orderedIndexes = collection.getOrderedIndexes();
         //index columns and sql for creatng indexes
         StringBuilder indexesColumns = new StringBuilder();
         StringBuilder createIndexesSql = new StringBuilder();
-        for (String index : indexesMap.keySet()) {
+        for (String index : orderedIndexes) {
             //add column for index (called as way to value in json)
             indexesColumns.append(", ")
                     .append(index)
@@ -95,12 +97,11 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
     @Override
-    public void removeCollection(String collectionName) throws SqliteException {
+    public void removeCollection(CollectionSetup collection) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
-                .append("drop table")
-                .append(getTablePrefix())
-                .append(collectionName)
+                .append("drop table if exists")
+                .append(collection.getFullName())
                 .append(";")
                 .toString();
         Statement statement = null;
@@ -109,7 +110,7 @@ public class SQLiteLocalStorage extends LocalStorage {
             statement.execute(sql);
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.REMOVING_COLLECTION_EXCEPTION,
-                    "Sqlite local database, collection "+collectionName,
+                    "Sqlite local database, collection "+collection.getName(),
                     "Problem adding collection. \n "+e.toString());
         } finally {
             try {
@@ -121,9 +122,24 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
+    private StringBuilder createInsertIndexPartSql(String collectionName, String jsonData){
+        //set indexes part of insert sql string
+        CollectionSetup collectionSetup = getCollectionSetup(collectionName);
+        List<String> orderedIndexes = collectionSetup.getOrderedIndexes();
+        JSONPropertyExtractor jsonPropertyExtractor = getJsonPropertyExtractor();
+        Map<String, Object> orderedIndexesValues = jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
+        StringBuilder indexesSqlPart = new StringBuilder();
+        for (String index:orderedIndexes) {
+            indexesSqlPart.append(", ").append((String)orderedIndexesValues.get(index));
+        }
+        return indexesSqlPart;
+    }
+
     @Override
     public String insert(String collectionName, Document document) throws SqliteException {
+        //connect
         connectDB();
+        //insert sql string
         String sql = new StringBuilder()
                 .append("insert into ")
                 .append(getTablePrefix())
@@ -131,8 +147,11 @@ public class SQLiteLocalStorage extends LocalStorage {
                 .append(" values( '")
                 .append(document.getId()).append("', '")
                 .append(document.getCollection()).append("', '")
-                .append(document.getJsonData()).append("');")
+                .append(document.getJsonData()).append("'")
+                .append(createInsertIndexPartSql(collectionName, document.getJsonData()))
+                .append(");")
                 .toString();
+        //perform insert
         Statement statement = null;
         try {
             statement = connection.createStatement();
@@ -149,7 +168,20 @@ public class SQLiteLocalStorage extends LocalStorage {
                 e.printStackTrace();
             }
         }
-        return document.getId().toString();
+        return document.getId();
+    }
+
+    private StringBuilder createUpdateIndexPartSql(String collectionName, String jsonData){
+        //set indexes part of update sql string
+        CollectionSetup collectionSetup = getCollectionSetup(collectionName);
+        List<String> orderedIndexes = collectionSetup.getOrderedIndexes();
+        JSONPropertyExtractor jsonPropertyExtractor = getJsonPropertyExtractor();
+        Map<String, Object> orderedIndexesValues = jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
+        StringBuilder indexesSqlPart = new StringBuilder();
+        for (String index:orderedIndexes) {
+            indexesSqlPart.append(", ").append(index).append("=").append((String)orderedIndexesValues.get(index));
+        }
+        return indexesSqlPart;
     }
 
     @Override
@@ -160,6 +192,7 @@ public class SQLiteLocalStorage extends LocalStorage {
                 .append(getTablePrefix())
                 .append(collectionName)
                 .append(" set jsondata='").append(document.getJsonData())
+                .append(createUpdateIndexPartSql(collectionName, document.getJsonData()))
                 .append("' where id='").append(document.getId()).append("';")
                 .toString();
         Statement statement = null;
@@ -178,7 +211,7 @@ public class SQLiteLocalStorage extends LocalStorage {
                 e.printStackTrace();
             }
         }
-        return document.getId().toString();
+        return document.getId();
     }
 
     @Override

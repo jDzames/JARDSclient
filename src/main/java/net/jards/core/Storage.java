@@ -3,10 +3,9 @@ package net.jards.core;
 import net.jards.errors.LocalStorageException;
 import net.jards.errors.RemoteStorageError;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
+
+import static net.jards.core.RemoteDocumentChange.ChangeType.*;
 
 /**
  * Transparent storage implementation that combines data from local and remote
@@ -22,7 +21,20 @@ public class Storage {
 			setThreadForLocalDBRuns(Thread.currentThread());
 
 			while (running) {
-				ExecutionRequest request = null;
+
+                List<DocumentChanges> remoteDocumentChanges = null;
+                synchronized (remoteChanges) {
+                    while (!remoteChanges.isEmpty()){
+                        //add all of document changes that came from server (in order)
+                        remoteDocumentChanges.add(remoteChanges.poll().getDocumentChanges());
+                    }
+                }
+                if (remoteDocumentChanges != null){
+                    //TODO write all changes
+                }
+
+
+				ExecutionRequest executionRequest = null;
 				synchronized (pendingRequests) {
                     while (pendingRequests.isEmpty()){
                         try {
@@ -31,37 +43,35 @@ public class Storage {
 						    e.printStackTrace();
 					    }
                     }
-					request = pendingRequests.poll();
+                    executionRequest = pendingRequests.poll();
 				}
-				if (request == null){
-					//TODO ?
+				if (executionRequest == null){
 					continue;
 				}
-                System.out.println("POSIELAM INSERT 3");
-				ExecutionContext context = request.getContext();
-				Transaction transaction = request.getTransaction();
-				Object[] arguments = request.getAttributes();
-                String methodName = request.getMethodName();
-				TransactionRunnable runnable = request.getRunnable();
+				ExecutionContext context = executionRequest.getContext();
+				Transaction transaction = executionRequest.getTransaction();
+				Object[] arguments = executionRequest.getAttributes();
+                String methodName = executionRequest.getMethodName();
+				TransactionRunnable runnable = executionRequest.getRunnable();
                 if (runnable != null){
+                    //Executing runnable
                     runnable.run(context, transaction, arguments);
                 }
 
-				if (request.isLocal()){
+                //Update with changes
+				if (executionRequest.isLocal()){
                     //only local execution, just execute (that was done already)
-
+                    DocumentChanges documentChanges = transaction.getLocalChanges();
+                    applyChangesOnOpenedCursors(documentChanges);
 				} else if (methodName == null || methodName == ""){
-                    //execute locally, send changes to server
-                    /*DocumentChanges changes = new DocumentChanges();
-                    Collection c = new Collection("tasks", false, transaction.getStorage());
-                    Document d = new Document(c, UUID.randomUUID());
-                    d.setJsonData("Pridany cez execute a applyChanges 1 ");
-                    changes.addDocument(d);
-                    remoteStorage.applyChanges(changes, request);*/
+                    //execute locally, send changes to server and apply them on unconfirmed requests
+                    DocumentChanges documentChanges = transaction.getLocalChanges();
+                    remoteStorage.applyChanges(documentChanges, executionRequest);
+                    applyChangesOnOpenedCursors(documentChanges);
                 } else {
-                    //speculative execution (method called on server)
+                    //speculative execution (method called on server), local changes to unconfirmed requests
                     synchronized (unconfirmedRequests){
-                        unconfirmedRequests.offer(request);
+                        unconfirmedRequests.offer(executionRequest);
                         unconfirmedRequests.notify();
                     }
                 }
@@ -69,7 +79,12 @@ public class Storage {
 
 			}
 		}
-	}
+
+        private void applyChangesOnOpenedCursors(DocumentChanges documentChanges) {
+            //TODO upgrades documents in opened cursors.. how? compare, id,..?
+            // execute does it twice (local execution, changes from server (meteor))
+        }
+    }
 
 	private final RemoteStorage remoteStorage;
 	private final LocalStorage localStorage;
@@ -77,6 +92,7 @@ public class Storage {
 
 	private final Map<String, TransactionRunnable> speculativeMethods = new HashMap<String, TransactionRunnable>();
 
+    private final Queue<UpdateDbRequest> remoteChanges = new LinkedList<UpdateDbRequest>();
 	private final Queue<ExecutionRequest> pendingRequests = new LinkedList<ExecutionRequest>();
 	private final Queue<ExecutionRequest> unconfirmedRequests = new LinkedList<ExecutionRequest>();
 
@@ -97,14 +113,37 @@ public class Storage {
 		remoteStorage.setListener(new RemoteStorageListener() {
 
             public void requestCompleted(ExecutionRequest request) {
-				// TODO Auto-generated method stub
-				//odstranit request z unconfirmed...
+				//remove request from unconfirmed...
 				System.out.println("REQUEST COMPLETED --- "+request.getMethodName());
+                synchronized (unconfirmedRequests){
+                    unconfirmedRequests.remove(request);
+                }
 			}
 
 			public void changesReceived(RemoteDocumentChange[] changes) {
-				// TODO Auto-generated method stub
-				//System.out.println("DATA V STORAGE ---  "+changes[0].getType()+"  "+changes[0].getData());
+				//Convert remote changes into documents
+                DocumentChanges documentChanges = new DocumentChanges();
+                for (RemoteDocumentChange change:changes){
+                    Document document = new Document(getCollection(change.getCollection()), change.getId());
+                    document.setJsonData(change.getData());
+                    if (change.getType() == INSERT){
+                        documentChanges.addDocument(document);
+                    } else if (change.getType() == UPDATE){
+                        documentChanges.updateDocument(document);
+                    } else if (change.getType() == REMOVE){
+                        documentChanges.removeDocument(document);
+                    }
+                }
+                //add changes to update db request and offer it to queue
+                UpdateDbRequest updateDbRequest = new UpdateDbRequest(documentChanges);
+                synchronized (remoteChanges){
+                    remoteChanges.offer(updateDbRequest);
+                    remoteChanges.notify();
+                }
+                synchronized (pendingRequests){
+                    pendingRequests.offer(null);
+                    pendingRequests.notify();
+                }
 			}
 
 			public void connectionChanged(Connection connection) {

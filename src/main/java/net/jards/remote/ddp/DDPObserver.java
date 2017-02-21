@@ -164,7 +164,7 @@ public class DDPObserver extends DDPListener implements Observer {
                     methods.remove(intId);
                     ddpRemoteStorage.requestCompleted(intId);
                 }
-
+                //nothing to do here
             }
             if (msgtype.equals(DdpMessageType.PING)) {
                 //should work already

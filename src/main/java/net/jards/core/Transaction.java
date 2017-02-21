@@ -102,6 +102,10 @@ public class Transaction {
         return true;
 	}
 
+    DocumentChanges getLocalChanges() {
+        return localChanges;
+    }
+
     Storage getStorage() {
         return storage;
     }

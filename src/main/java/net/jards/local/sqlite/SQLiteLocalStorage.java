@@ -12,7 +12,7 @@ public class SQLiteLocalStorage extends LocalStorage {
 
 
     private Connection connection;
-    private final String localDbAdress;
+    private final String localDbAdress; //"jdbc:sqlite:test.db"
 
     public SQLiteLocalStorage(StorageSetup storageSetup, String databaseConnection) throws LocalStorageException {
 		super(storageSetup);

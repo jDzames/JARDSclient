@@ -8,13 +8,13 @@ public class RemoteDocumentChange {
 
 	private  ChangeType type;
 	private  String collection;
-	private  String uuid;
+	private  String id;
 	private  String data;
 
-	public RemoteDocumentChange(ChangeType type, String collection, String uuid, String data){
+	public RemoteDocumentChange(ChangeType type, String collection, String id, String data){
 		this.type = type;
 		this.collection = collection;
-		this.uuid = uuid;
+		this.id = id;
 		this.data =data;
 	}
 
@@ -30,8 +30,8 @@ public class RemoteDocumentChange {
 		return data;
 	}
 
-	public String getUuid() {
-		return uuid;
+	public String getId() {
+		return id;
 	}
 }
 

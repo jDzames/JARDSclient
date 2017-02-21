@@ -3,6 +3,7 @@ package net.jards.core;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import net.jards.errors.LocalStorageException;
 import net.jards.local.sqlite.SQLiteLocalStorage;
 import net.jards.remote.ddp.DDPConnectionSettings;
 import net.jards.remote.ddp.DDPRemoteStorage;
@@ -38,7 +39,12 @@ public class AppTest
         StorageSetup storageSetup = new StorageSetup();
         DDPConnectionSettings connectionSettings = new DDPConnectionSettings("localhost", 3000, DDPConnectionSettings.LoginType.Username, "testik", "testik");
         RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, connectionSettings);
-        LocalStorage localStorage = new SQLiteLocalStorage(storageSetup);
+        LocalStorage localStorage = null;
+        try {
+            localStorage = new SQLiteLocalStorage(storageSetup, "jdbc:sqlite:test.db");
+        } catch (LocalStorageException e) {
+            e.printStackTrace();
+        }
         Storage storage = new Storage(storageSetup, remoteStorage, localStorage);
         storage.start("");
 

@@ -30,7 +30,7 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
         Map<String, Object> values = new HashMap<>();
         ReadContext ctx = JsonPath.using(listConfig).parse(jsonString);
         for (String propertyPath:propertyPaths) {
-            values.put(propertyPath, ctx.read("$"+propertyPath));
+            values.put(propertyPath, ctx.read("$."+propertyPath));
         }
         return values;
     }
@@ -43,6 +43,6 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
      */
     @Override
     public Object extractPropertyValue(String jsonString, String propertyPath) {
-        return JsonPath.using(stringConfig).parse(jsonString).read("$"+propertyPath);
+        return JsonPath.using(stringConfig).parse(jsonString).read("$."+propertyPath);
     }
 }

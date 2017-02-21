@@ -14,13 +14,20 @@ public class SQLiteTest {
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             System.exit(0);
         }*/
-        //System.out.println("Opened database \n successfully");
-        /*Map<String, String> map = new HashMap<>();
-        map.put("jeden","dva");
-        map.put("tri", "styri");
-        System.out.println(map.hashCode());*/
-        /*CollectionSetup setup = new CollectionSetup("prefix", "name", false);
-        System.out.println(setup.hashCode());*/
+        /*String jsonTest = "{\"menu\": {" +
+                "  \"id\": \"file\"," +
+                "  \"value\": \"File\"," +
+                "  \"popup\": {" +
+                "    \"menuitem\": [" +
+                "      {\"value\": \"New\", \"onclick\": \"CreateNewDoc()\"}," +
+                "      {\"value\": \"Open\", \"onclick\": \"OpenDoc()\"}," +
+                "      {\"value\": \"Close\", \"onclick\": \"CloseDoc()\"}" +
+                "    ]" +
+                "  }" +
+                "}}";
+        JSONPropertyExtractor jsonPropertyExtractor = new DefaultJSONPropertyExtractor();
+        String value = (String)jsonPropertyExtractor.extractPropertyValue(jsonTest, "menu.popup.menuitem[0].value");
+        System.out.println(value);*/
     }
 
 }

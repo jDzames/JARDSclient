@@ -12,7 +12,7 @@ public class StorageSetup {
     private final Map<String, CollectionSetup> localCollections = new HashMap<>();
 
     private String tablePrefix;
-    private String dbAdress;
+    private String dbAddress;
     private JSONPropertyExtractor jsonPropertyExtractor = null;
 
 
@@ -28,6 +28,12 @@ public class StorageSetup {
         return tablePrefix;
     }
 
+    /**
+     * Creates and adds collection setup
+     * @param name name of collection
+     * @param local true if collection is local only, else false
+     * @param indexColumns any numbers of indexes (defined as path to value in json)
+     */
     public void addCollectionSetup(String name, boolean local, String ... indexColumns){
         CollectionSetup collectionSetup = new CollectionSetup(tablePrefix, name, local, indexColumns);
         localCollections.put(name, collectionSetup);
@@ -35,7 +41,7 @@ public class StorageSetup {
 
     public void addCollectionSetup(CollectionSetup collectionSetup){
         if (collectionSetup.getTablePrefix() != this.tablePrefix){
-            return; //TODO exception here? (wrong refix)
+            return; //TODO exception here? (wrong prefix)
         }
         localCollections.put(collectionSetup.getName(), collectionSetup);
     }
@@ -48,8 +54,8 @@ public class StorageSetup {
         this.jsonPropertyExtractor = jsonPropertyExtractor;
     }
 
-    public void setDbAdress(String dbAdress) {
-        this.dbAdress = dbAdress;
+    public void setDbAddress(String dbAddress) {
+        this.dbAddress = dbAddress;
     }
 
     public JSONPropertyExtractor getJsonPropertyExtractor() {
@@ -60,7 +66,7 @@ public class StorageSetup {
     }
 
     public String getDbAdress() {
-        return dbAdress;
+        return dbAddress;
     }
 }
 

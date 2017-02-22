@@ -31,6 +31,12 @@ public class Storage {
                 }
                 if (remoteDocumentChanges != null){
                     //TODO write all changes
+                    try {
+                        localStorage.applyDocumentChanges(remoteDocumentChanges);
+                    } catch (LocalStorageException e) {
+                        System.out.println("ERROR: " + e.toString());
+                    }
+                    applyListOfChangesOnOpenedCursors(remoteDocumentChanges);
                 }
 
 
@@ -63,11 +69,13 @@ public class Storage {
                     //only local execution, just execute (that was done already)
                     DocumentChanges documentChanges = transaction.getLocalChanges();
                     applyChangesOnOpenedCursors(documentChanges);
+                    executionRequest.ready();
 				} else if (methodName == null || methodName == ""){
                     //execute locally, send changes to server and apply them on unconfirmed requests
                     DocumentChanges documentChanges = transaction.getLocalChanges();
                     remoteStorage.applyChanges(documentChanges, executionRequest);
                     applyChangesOnOpenedCursors(documentChanges);
+                    executionRequest.ready();
                 } else {
                     //speculative execution (method called on server), local changes to unconfirmed requests
                     synchronized (unconfirmedRequests){
@@ -79,6 +87,11 @@ public class Storage {
 
 			}
 		}
+
+        private void applyListOfChangesOnOpenedCursors(List<DocumentChanges> documentChanges) {
+            //TODO upgrades documents in opened cursors.. how? compare, id,..?
+            // execute does it twice (local execution, changes from server (meteor))
+        }
 
         private void applyChangesOnOpenedCursors(DocumentChanges documentChanges) {
             //TODO upgrades documents in opened cursors.. how? compare, id,..?
@@ -113,11 +126,14 @@ public class Storage {
 		remoteStorage.setListener(new RemoteStorageListener() {
 
             public void requestCompleted(ExecutionRequest request) {
-				//remove request from unconfirmed...
+				//removeDocument request from unconfirmed...
 				System.out.println("REQUEST COMPLETED --- "+request.getMethodName());
                 synchronized (unconfirmedRequests){
                     unconfirmedRequests.remove(request);
                 }
+                //if synchronous call, then continue now
+                request.ready();
+
 			}
 
 			public void changesReceived(RemoteDocumentChange[] changes) {
@@ -134,7 +150,7 @@ public class Storage {
                         documentChanges.removeDocument(document);
                     }
                 }
-                //add changes to update db request and offer it to queue
+                //add changes to updateDocument db request and offer it to queue
                 UpdateDbRequest updateDbRequest = new UpdateDbRequest(documentChanges);
                 synchronized (remoteChanges){
                     remoteChanges.offer(updateDbRequest);
@@ -169,7 +185,7 @@ public class Storage {
 		remoteStorage.start("");
     }
 
-	void setThreadForLocalDBRuns(Thread threadForLocalDBRuns) {
+	private void setThreadForLocalDBRuns(Thread threadForLocalDBRuns) {
 		this.threadForLocalDBRuns = threadForLocalDBRuns;
 	}
 

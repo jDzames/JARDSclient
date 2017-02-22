@@ -23,9 +23,9 @@ public class Transaction {
 	 */
 	
 	Document insert(Collection collection, Document document) throws LocalStorageException {
-		// storage -> localStorage -> sql/other.. insert
+		// storage -> localStorage -> sql/other.. createDocument
 
-        // create document
+        // createDocument document
         String jsonData = document.getJsonData();
         document = new Document(collection, idGenerator.getId().toString());
         document.setJsonData(jsonData);
@@ -38,14 +38,14 @@ public class Transaction {
                 //TODO throw new LocalStorageException();
             }
             LocalStorage localStorage = storage.getLocalStorage();
-            localStorage.insert(collection.getFullName(), document);
+            localStorage.createDocument(collection.getName(), document);
         } else if (speculation){
             // only speculation, just put document into changes
             localChanges.addDocument(document);
         } else {
             // execute - write to db, and send changes to server (put document into changes)
             LocalStorage localStorage = storage.getLocalStorage();
-            localStorage.insert(collection.getFullName(), document);
+            localStorage.createDocument(collection.getName(), document);
             localChanges.addDocument(document);
         }
 
@@ -63,14 +63,14 @@ public class Transaction {
                 //TODO throw new LocalStorageException();
             }
             LocalStorage localStorage = storage.getLocalStorage();
-            localStorage.update(collection.getFullName(), document);
+            localStorage.updateDocument(collection.getName(), document);
         } else if (speculation){
             // only speculation, just put document into changes
             localChanges.updateDocument(document);
         } else {
             // execute - write to db, and send changes to server
             LocalStorage localStorage = storage.getLocalStorage();
-            localStorage.update(collection.getFullName(), document);
+            localStorage.updateDocument(collection.getName(), document);
             localChanges.updateDocument(document);
         }
 
@@ -88,14 +88,14 @@ public class Transaction {
                 //TODO throw new LocalStorageException();
             }
             LocalStorage localStorage = storage.getLocalStorage();
-            localStorage.remove(collection.getFullName(), document);
+            localStorage.removeDocument(collection.getName(), document);
         } else if (speculation){
             // only speculation, just put document into changes
             localChanges.removeDocument(document);
         } else {
             // execute - write to db, and send changes to server (document into changes)
             LocalStorage localStorage = storage.getLocalStorage();
-            localStorage.remove(collection.getFullName(), document);
+            localStorage.removeDocument(collection.getName(), document);
             localChanges.removeDocument(document);
         }
 

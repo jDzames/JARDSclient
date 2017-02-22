@@ -20,6 +20,8 @@ public class ExecutionRequest {
 	private boolean local;
     private boolean speculation;
 
+    private boolean waiting = false;
+
 	public ExecutionRequest(Transaction transaction) {
 		this.transaction = transaction;
 		id = "" + (int) Math.random()*1000000;
@@ -34,9 +36,28 @@ public class ExecutionRequest {
 	/**
 	 * Wait for completing execution request.
 	 */
-	public void await() {
-
+    void await() {
+        waiting = true;
+        synchronized (this) {
+            try {
+                while (waiting) {
+                    this.wait();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
 	}
+
+    /**
+     * Set ready when execution is done, wake up from waiting.
+     */
+    void ready(){
+        waiting = false;
+        synchronized (this){
+            this.notify();
+        }
+    }
 
 	void setAttributes(Object[] attributes) {
 		this.attributes = attributes;

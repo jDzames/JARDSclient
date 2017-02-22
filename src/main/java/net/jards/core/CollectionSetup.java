@@ -24,19 +24,23 @@ public class CollectionSetup {
         this.local = local;
         for (String index: indexes){
             this.indexes.put(index, "default");
+            this.indexesOrder.add(index);
         }
     }
 
     public void addIndex(String name){
         this.indexes.put(name, "text");
+        this.indexesOrder.add(name);
     }
 
     public void addIntIndex(String name){
         this.indexes.put(name, "int");
+        this.indexesOrder.add(name);
     }
 
     public void addStringIndex(String name){
         this.indexes.put(name, "text");
+        this.indexesOrder.add(name);
     }
 
     public String getTablePrefix() {

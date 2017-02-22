@@ -20,24 +20,25 @@ public abstract class LocalStorage {
         this.jsonPropertyExtractor = storageSetup.getJsonPropertyExtractor();
 		this.tablePrefix = storageSetup.getTablePrefix();
         this.collections = storageSetup.getLocalCollections();
-        //create hash from storage setup, read hash from special collection (prefix+setupCollection)
-        //compare hashes. if same - nothing. if different, update hash and create all collections rom collection setup
+        //createDocument hash from storage setup, read hash from special collection (prefix+setupCollection)
+        //compare hashes. if same - nothing. if different, updateDocument hash and createDocument all collections rom collection setup
 
         //setupCollection = new CollectionSetup(tablePrefix, "saved_setup_collection", true);
         setupHashCollection = new CollectionSetup(tablePrefix, "setup_hash_table", true);
+        collections.put("setup_hash_table", setupHashCollection);
         //compute hash to be able to compare
         setupHash = computeSetupHash();
 
         try{
             Map<String, String> savedSetupHashDocument = findOne(null/*query for setup_hash_collection to findOne any*/);
             int savedSetupHash = Integer.parseInt(savedSetupHashDocument.get("jsondata"));
-            //compare hashes, if same, done, if different - create new collections (drop those cause prefix)
+            //compare hashes, if same, done, if different - createDocument new collections (drop those cause prefix)
             if (setupHash != savedSetupHash){
                 //fillSetupCollections(); not used
                 createCollectionsFromSetup();
             }
         } catch (Exception e) {
-            //table does not exist or other error, create new collections, insert into 2 special ones
+            //table does not exist or other error, createDocument new collections, createDocument into 2 special ones
             //try in method, if error - throw error, something wrong
             //fillSetupCollections(); not used
             createCollectionsFromSetup();
@@ -52,7 +53,7 @@ public abstract class LocalStorage {
     }
 
     /**
-     * Make documents from collections and insert them into special setupCollection.
+     * Make documents from collections and createDocument them into special setupCollection.
      * (Not used, cause collections are hold in map here)
      */
     private void fillSetupCollections() {
@@ -66,6 +67,7 @@ public abstract class LocalStorage {
     private void createCollectionsFromSetup() throws LocalStorageException{
         try {
             connectDB();
+
             for (CollectionSetup collection:collections.values()) {
                 this.removeCollection(collection);
                 this.addCollection(collection);
@@ -73,9 +75,12 @@ public abstract class LocalStorage {
             Collection hashCollection = new Collection(tablePrefix, setupHashCollection.getName(), true, null);
             Document hashDocument = new Document(hashCollection, "0");
             hashDocument.setJsonData(""+setupHash);
+            System.out.println("before remove");
             this.removeCollection(setupHashCollection);
+            System.out.println("before adding collection");
             this.addCollection(setupHashCollection);
-            this.insert(setupHashCollection.getName(), hashDocument);
+            System.out.println("before adding document "+setupHashCollection.getName());
+            this.createDocument(setupHashCollection.getName(), hashDocument);
         } catch (SqliteException e) {
             throw new SqliteException(SqliteException.SETUP_EXCEPTION,
                     "LocalStorage, creating collections from setup",
@@ -93,7 +98,7 @@ public abstract class LocalStorage {
     }
 
     /**
-     * TODO check if collections from storageSetup exists, if no - create them
+     * TODO check if collections from storageSetup exists, if no - createDocument them
      * Starts LocalStorage, if you want to continue, read work that has not been saved (unconfirmed changes)
      * and return it. Storage will use it.
      * @return List of saved requests
@@ -107,25 +112,27 @@ public abstract class LocalStorage {
      */
     public abstract void stop(Queue<ExecutionRequest> unconfirmedRequests);
 
-    public abstract void connectDB() throws SqliteException;
+    public abstract void connectDB() throws LocalStorageException;
 
-    public abstract void addCollection(CollectionSetup collection) throws SqliteException;
+    public abstract void addCollection(CollectionSetup collection) throws LocalStorageException;
 
-    void removeCollection(String collectionName) throws SqliteException {
+    void removeCollection(String collectionName) throws LocalStorageException {
         this.removeCollection(collections.get(collectionName));
     }
 
-    public abstract void removeCollection(CollectionSetup collection) throws SqliteException;
+    public abstract void removeCollection(CollectionSetup collection) throws LocalStorageException;
 
-    public abstract String insert(String collectionName, Document document) throws SqliteException;
+    public abstract String createDocument(String collectionName, Document document) throws LocalStorageException;
 
-    public abstract String update(String collectionName, Document document) throws SqliteException;
+    public abstract String updateDocument(String collectionName, Document document) throws LocalStorageException;
 
-    public abstract boolean remove(String collectionName, Document document) throws SqliteException;
+    public abstract boolean removeDocument(String collectionName, Document document) throws LocalStorageException;
 
-    public abstract List<Map<String, String>> find(Query query) throws SqliteException;
+    public abstract void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges) throws LocalStorageException;
 
-    public abstract Map<String, String> findOne(Query query) throws SqliteException;
+    public abstract List<Map<String, String>> find(Query query) throws LocalStorageException;
+
+    public abstract Map<String, String> findOne(Query query) throws LocalStorageException;
 
     public String getTablePrefix() {
         return tablePrefix;

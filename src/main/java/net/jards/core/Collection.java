@@ -46,7 +46,7 @@ public class Collection {
         this.local = collectionSetup.isLocal();
     }
 
-	public Document insert(Document document, Transaction transaction) throws LocalStorageException {
+	public Document create(Document document, Transaction transaction) throws LocalStorageException {
 		checkTransaction(transaction);
 		return transaction.insert(this, document);
 	}

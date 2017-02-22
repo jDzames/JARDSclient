@@ -12,12 +12,12 @@ public class SQLiteLocalStorage extends LocalStorage {
 
 
     private Connection connection;
-    private final String localDbAdress; //"jdbc:sqlite:test.db"
+    private final String localDbAddress; //"jdbc:sqlite:test.db"
 
     public SQLiteLocalStorage(StorageSetup storageSetup, String databaseConnection) throws LocalStorageException {
 		super(storageSetup);
-		// TODO create db, tables..?
-        localDbAdress = databaseConnection;
+		// TODO createDocument db, tables..?
+        localDbAddress = databaseConnection;
 	}
 
     @Override
@@ -36,10 +36,9 @@ public class SQLiteLocalStorage extends LocalStorage {
         connection = null;
         try {
             Class.forName("org.sqlite.JDBC");
-            connection = DriverManager.getConnection(localDbAdress);
+            connection = DriverManager.getConnection("jdbc:sqlite:test.db"); //localDbAddress);
         } catch ( Exception e ) {
             System.out.println("local db connection error");
-            //TODO error finish (message..)
             throw new SqliteException(SqliteException.CONNECTION_EXCEPTION, "Sqlite local database", "Can't connect to local database. \n "+e.toString());
         }
     }
@@ -58,8 +57,8 @@ public class SQLiteLocalStorage extends LocalStorage {
                     .append(index)
                     .append(" ")
                     .append(indexesMap.get(index));
-            //add index (create index statement)
-            createIndexesSql.append("\n create index ")
+            //add index (createDocument index statement)
+            createIndexesSql.append("\n createDocument index ")
                     .append(index)
                     .append("_index on ")
                     .append(collection.getFullName())
@@ -70,7 +69,7 @@ public class SQLiteLocalStorage extends LocalStorage {
 
         //sql for creating table
         String sql = new StringBuilder()
-                .append("create table")
+                .append("create table ")
                 .append(collection.getFullName())
                 .append(" (id varchar(36) primary key, collection text, jsondata text")
                 .append(indexesColumns)
@@ -100,7 +99,7 @@ public class SQLiteLocalStorage extends LocalStorage {
     public void removeCollection(CollectionSetup collection) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
-                .append("drop table if exists")
+                .append("drop table if exists ")
                 .append(collection.getFullName())
                 .append(";")
                 .toString();
@@ -123,23 +122,25 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
     private StringBuilder createInsertIndexPartSql(String collectionName, String jsonData){
-        //set indexes part of insert sql string
+        //set indexes part of createDocument sql string
         CollectionSetup collectionSetup = getCollectionSetup(collectionName);
         List<String> orderedIndexes = collectionSetup.getOrderedIndexes();
         JSONPropertyExtractor jsonPropertyExtractor = getJsonPropertyExtractor();
         Map<String, Object> orderedIndexesValues = jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
         StringBuilder indexesSqlPart = new StringBuilder();
         for (String index:orderedIndexes) {
-            indexesSqlPart.append(", ").append((String)orderedIndexesValues.get(index));
+            indexesSqlPart.append(", ")
+                    .append("'").append((String)orderedIndexesValues.get(index)).append("'");
         }
         return indexesSqlPart;
     }
 
     @Override
-    public String insert(String collectionName, Document document) throws SqliteException {
+    public String createDocument(String collectionName, Document document) throws SqliteException {
         //connect
         connectDB();
-        //insert sql string
+        System.out.println("tu faaaajn ----------------------- !!!!!!!!!!!!!!!!");
+        //createDocument sql string
         String sql = new StringBuilder()
                 .append("insert into ")
                 .append(getTablePrefix())
@@ -151,15 +152,15 @@ public class SQLiteLocalStorage extends LocalStorage {
                 .append(createInsertIndexPartSql(collectionName, document.getJsonData()))
                 .append(");")
                 .toString();
-        //perform insert
+        //perform createDocument
         Statement statement = null;
         try {
             statement = connection.createStatement();
             statement.execute(sql);
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.INSERT_EXCEPTION,
-                    "Sqlite local database, insert.",
-                    "Problem with insert. \n "+e.toString());
+                    "Sqlite local database, createDocument.",
+                    "Problem with createDocument. \n "+e.toString());
         } finally {
             try {
                 statement.close();
@@ -172,28 +173,30 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
     private StringBuilder createUpdateIndexPartSql(String collectionName, String jsonData){
-        //set indexes part of update sql string
+        //set indexes part of updateDocument sql string
         CollectionSetup collectionSetup = getCollectionSetup(collectionName);
         List<String> orderedIndexes = collectionSetup.getOrderedIndexes();
         JSONPropertyExtractor jsonPropertyExtractor = getJsonPropertyExtractor();
         Map<String, Object> orderedIndexesValues = jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
         StringBuilder indexesSqlPart = new StringBuilder();
         for (String index:orderedIndexes) {
-            indexesSqlPart.append(", ").append(index).append("=").append((String)orderedIndexesValues.get(index));
+            indexesSqlPart.append(", ")
+                    .append(index).append("=")
+                    .append("'").append((String)orderedIndexesValues.get(index)).append("'");
         }
         return indexesSqlPart;
     }
 
     @Override
-    public String update(String collectionName, Document document) throws SqliteException {
+    public String updateDocument(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
                 .append("update ")
                 .append(getTablePrefix())
                 .append(collectionName)
-                .append(" set jsondata='").append(document.getJsonData())
+                .append(" set jsondata='").append(document.getJsonData()).append("' ")
                 .append(createUpdateIndexPartSql(collectionName, document.getJsonData()))
-                .append("' where id='").append(document.getId()).append("';")
+                .append(" where id='").append(document.getId()).append("';")
                 .toString();
         Statement statement = null;
         try {
@@ -201,8 +204,8 @@ public class SQLiteLocalStorage extends LocalStorage {
             statement.execute(sql);
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.UPDATE_EXCEPTION,
-                    "Sqlite local database, update.",
-                    "Problem with insert. \n "+e.toString());
+                    "Sqlite local database, updateDocument.",
+                    "Problem with createDocument. \n "+e.toString());
         } finally {
             try {
                 statement.close();
@@ -215,7 +218,7 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
     @Override
-    public boolean remove(String collectionName, Document document) throws SqliteException {
+    public boolean removeDocument(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
                 .append("delete from ")
@@ -242,6 +245,21 @@ public class SQLiteLocalStorage extends LocalStorage {
             }
         }
         return true;
+    }
+
+    @Override
+    public void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges) throws LocalStorageException {
+        for (DocumentChanges changes:remoteDocumentChanges){
+            for (Document addedDocument:changes.getAddedDocuments()) {
+                this.createDocument(addedDocument.getCollection().getName(), addedDocument);
+            }
+            for (Document updatedDocument:changes.getUpdatedDocuments()) {
+                this.updateDocument(updatedDocument.getCollection().getName(), updatedDocument);
+            }
+            for (Document removedDocument:changes.getRemovedDocuments()) {
+                this.removeDocument(removedDocument.getCollection().getName(), removedDocument);
+            }
+        }
     }
 
     @Override

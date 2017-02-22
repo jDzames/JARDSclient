@@ -37,6 +37,7 @@ public class AppTest
     {
 
         StorageSetup storageSetup = new StorageSetup();
+        storageSetup.addCollectionSetup("LocalTest", true);
         DDPConnectionSettings connectionSettings = new DDPConnectionSettings("localhost", 3000, DDPConnectionSettings.LoginType.Username, "testik", "testik");
         RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, connectionSettings);
         LocalStorage localStorage = null;
@@ -44,48 +45,25 @@ public class AppTest
             localStorage = new SQLiteLocalStorage(storageSetup, "jdbc:sqlite:test.db");
         } catch (LocalStorageException e) {
             e.printStackTrace();
+            //System.out.println(e.message());
+            //assertNotNull(localStorage);
+            return;
         }
+
         Storage storage = new Storage(storageSetup, remoteStorage, localStorage);
         storage.start("");
 
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
-        storage.subscribe("tasks");
-
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        //storage.subscribe("tasks");
 
         /*Object[] methodArgs = new Object[1];
         methodArgs[0] = "Pridany cez DDP 2";*/
-		//storage.callAsync("tasks.insert", "Pridany cez DDP 3");
+		//storage.callAsync("tasks.createDocument", "Pridany cez DDP 3");
         //storage.executeAsync(new TransactionRunnableTest());
 
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        storage.executeLocallyAsync(new TransactionRunnableTest());
 
-        //storage.executeAsync(new TransactionRunnableTest());
 
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
         try {
             Thread.sleep(10000);
@@ -116,7 +94,7 @@ public class AppTest
 			//System.out.println(obs.mCollections.toString());
 			methodArgs = new Object[1];
 			methodArgs[0] = "Pridany cez Javuuuuu";
-			int callId = ddp.call("tasks.insert", methodArgs);
+			int callId = ddp.call("tasks.createDocument", methodArgs);
 			System.out.println("Call id  =  "+callId);
 */
 /**

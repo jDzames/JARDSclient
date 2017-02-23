@@ -49,7 +49,7 @@ class QueryBuilder {
         }
         throw  new QueryException(LocalStorageException.QUERY_BUILDING_EXCEPTION,
                 "Query, build method",
-                "You have to provide at least collection for query to be used.");
+                "You have to provide at least collection for query to be used.", null);
     }
 
 }

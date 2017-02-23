@@ -10,11 +10,13 @@ public class SqliteException extends LocalStorageException {
     private int id;
     private String source;
     private String message;
+    private Exception innerException;
 
-    public SqliteException(int id, String source, String message){
+    public SqliteException(int id, String source, String message, Exception innerException){
         this.id = id;
         this.source = source;
         this.message = message;
+        this.innerException = innerException;
     }
 
     @Override
@@ -30,5 +32,10 @@ public class SqliteException extends LocalStorageException {
     @Override
     public String message() {
         return this.message;
+    }
+
+    @Override
+    public Exception innerException() {
+        return this.innerException;
     }
 }

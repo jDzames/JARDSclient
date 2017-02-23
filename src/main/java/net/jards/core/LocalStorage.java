@@ -9,7 +9,7 @@ import java.util.Queue;
 
 public abstract class LocalStorage {
 
-    private final String tablePrefix;
+    private final String prefix;
     private final Map<String, CollectionSetup> collections;
     private final CollectionSetup setupHashCollection;
     private final int setupHash;
@@ -18,13 +18,13 @@ public abstract class LocalStorage {
 
 	public LocalStorage(StorageSetup storageSetup) throws LocalStorageException {
         this.jsonPropertyExtractor = storageSetup.getJsonPropertyExtractor();
-		this.tablePrefix = storageSetup.getTablePrefix();
+		this.prefix = storageSetup.getPrefix();
         this.collections = storageSetup.getLocalCollections();
         //createDocument hash from storage setup, read hash from special collection (prefix+setupCollection)
         //compare hashes. if same - nothing. if different, updateDocument hash and createDocument all collections rom collection setup
 
-        //setupCollection = new CollectionSetup(tablePrefix, "saved_setup_collection", true);
-        setupHashCollection = new CollectionSetup(tablePrefix, "setup_hash_table", true);
+        //setupCollection = new CollectionSetup(prefix, "saved_setup_collection", true);
+        setupHashCollection = new CollectionSetup(prefix, "setup_hash_table", true);
         collections.put("setup_hash_table", setupHashCollection);
         //compute hash to be able to compare
         setupHash = computeSetupHash();
@@ -72,19 +72,16 @@ public abstract class LocalStorage {
                 this.removeCollection(collection);
                 this.addCollection(collection);
             }
-            Collection hashCollection = new Collection(tablePrefix, setupHashCollection.getName(), true, null);
+            Collection hashCollection = new Collection(setupHashCollection.getName(), true, null);
             Document hashDocument = new Document(hashCollection, "0");
             hashDocument.setJsonData(""+setupHash);
-            System.out.println("before remove");
             this.removeCollection(setupHashCollection);
-            System.out.println("before adding collection");
             this.addCollection(setupHashCollection);
-            System.out.println("before adding document "+setupHashCollection.getName());
             this.createDocument(setupHashCollection.getName(), hashDocument);
         } catch (SqliteException e) {
-            throw new SqliteException(SqliteException.SETUP_EXCEPTION,
-                    "LocalStorage, creating collections from setup",
-                    "Problem creating collections in LocalStorage. "+e.toString());
+            //
+            e.printStackTrace();
+            throw e;
         }
 
     }
@@ -103,39 +100,39 @@ public abstract class LocalStorage {
      * and return it. Storage will use it.
      * @return List of saved requests
      */
-    public abstract List<ExecutionRequest> start();
+    protected abstract List<ExecutionRequest> start();
 
     /**
      * TODO save state - all from queue from thread (unconfirmed requests)
      * Stops the execution, saves changes which have been done, but not confirmed by server yet and not written into database.
      * @param unconfirmedRequests queue of unconfirmed requests
      */
-    public abstract void stop(Queue<ExecutionRequest> unconfirmedRequests);
+    protected abstract void stop(Queue<ExecutionRequest> unconfirmedRequests);
 
-    public abstract void connectDB() throws LocalStorageException;
+    protected abstract void connectDB() throws LocalStorageException;
 
-    public abstract void addCollection(CollectionSetup collection) throws LocalStorageException;
+    protected abstract void addCollection(CollectionSetup collection) throws LocalStorageException;
 
     void removeCollection(String collectionName) throws LocalStorageException {
         this.removeCollection(collections.get(collectionName));
     }
 
-    public abstract void removeCollection(CollectionSetup collection) throws LocalStorageException;
+    protected abstract void removeCollection(CollectionSetup collection) throws LocalStorageException;
 
-    public abstract String createDocument(String collectionName, Document document) throws LocalStorageException;
+    protected abstract String createDocument(String collectionName, Document document) throws LocalStorageException;
 
-    public abstract String updateDocument(String collectionName, Document document) throws LocalStorageException;
+    protected abstract String updateDocument(String collectionName, Document document) throws LocalStorageException;
 
-    public abstract boolean removeDocument(String collectionName, Document document) throws LocalStorageException;
+    protected abstract boolean removeDocument(String collectionName, Document document) throws LocalStorageException;
 
-    public abstract void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges) throws LocalStorageException;
+    protected abstract void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges) throws LocalStorageException;
 
-    public abstract List<Map<String, String>> find(Query query) throws LocalStorageException;
+    protected abstract List<Map<String, String>> find(Query query) throws LocalStorageException;
 
-    public abstract Map<String, String> findOne(Query query) throws LocalStorageException;
+    protected abstract Map<String, String> findOne(Query query) throws LocalStorageException;
 
-    public String getTablePrefix() {
-        return tablePrefix;
+    protected String getPrefix() {
+        return prefix;
     }
 }
 

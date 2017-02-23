@@ -16,35 +16,37 @@ public class SQLiteLocalStorage extends LocalStorage {
 
     public SQLiteLocalStorage(StorageSetup storageSetup, String databaseConnection) throws LocalStorageException {
 		super(storageSetup);
-		// TODO createDocument db, tables..?
         localDbAddress = databaseConnection;
 	}
 
     @Override
-    public List<ExecutionRequest> start() {
+    protected List<ExecutionRequest> start() {
         //TODO read requests from collection for them. move and do in default LocalStorage or user here?
         return null;
     }
 
     @Override
-    public void stop(Queue<ExecutionRequest> unconfirmedRequests) {
+    protected void stop(Queue<ExecutionRequest> unconfirmedRequests) {
         //TODO save requests into collection for them. same question.
     }
 
     @Override
-    public void connectDB() throws SqliteException {
+    protected void connectDB() throws SqliteException {
         connection = null;
         try {
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection("jdbc:sqlite:test.db"); //localDbAddress);
         } catch ( Exception e ) {
             System.out.println("local db connection error");
-            throw new SqliteException(SqliteException.CONNECTION_EXCEPTION, "Sqlite local database", "Can't connect to local database. \n "+e.toString());
+            throw new SqliteException(SqliteException.CONNECTION_EXCEPTION,
+                    "Sqlite local database",
+                    "Can't connect to local database. \n "+e.toString(),
+                    e);
         }
     }
 
     @Override
-	public void addCollection(CollectionSetup collection) throws SqliteException {
+    protected void addCollection(CollectionSetup collection) throws SqliteException {
         connectDB();
         Map<String, String> indexesMap = collection.getIndexes();
         List<String> orderedIndexes = collection.getOrderedIndexes();
@@ -58,14 +60,16 @@ public class SQLiteLocalStorage extends LocalStorage {
                     .append(" ")
                     .append(indexesMap.get(index));
             //add index (createDocument index statement)
-            createIndexesSql.append("\n createDocument index ")
+            createIndexesSql.append("\n create index ")
                     .append(index)
                     .append("_index on ")
-                    .append(collection.getFullName())
+                    .append(getPrefix())
+                    .append(collection.getName())
                     .append(" (")
                     .append(index)
                     .append(");");
         }
+        System.out.println(createIndexesSql.toString());
 
         //sql for creating table
         String sql = new StringBuilder()
@@ -76,27 +80,24 @@ public class SQLiteLocalStorage extends LocalStorage {
                 .append(");")
                 .append(createIndexesSql)
                 .toString();
-
+        System.out.println(sql);
         Statement statement = null;
         try {
             statement = connection.createStatement();
             statement.execute(sql);
         } catch (SQLException e) {
+            e.printStackTrace();
             throw new SqliteException(SqliteException.ADDING_COLLECTION_EXCEPTION,
                     "Sqlite local database, collection "+collection.getName(),
-                    "Problem adding collection. \n "+e.toString());
+                    "Problem adding collection. \n "+e.toString(),
+                    e);
         } finally {
-            try {
-                statement.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            close(statement);
         }
     }
 
     @Override
-    public void removeCollection(CollectionSetup collection) throws SqliteException {
+    protected void removeCollection(CollectionSetup collection) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
                 .append("drop table if exists ")
@@ -110,7 +111,8 @@ public class SQLiteLocalStorage extends LocalStorage {
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.REMOVING_COLLECTION_EXCEPTION,
                     "Sqlite local database, collection "+collection.getName(),
-                    "Problem adding collection. \n "+e.toString());
+                    "Problem adding collection. \n "+e.toString(),
+                    e);
         } finally {
             try {
                 statement.close();
@@ -136,14 +138,13 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
     @Override
-    public String createDocument(String collectionName, Document document) throws SqliteException {
+    protected String createDocument(String collectionName, Document document) throws SqliteException {
         //connect
         connectDB();
-        System.out.println("tu faaaajn ----------------------- !!!!!!!!!!!!!!!!");
         //createDocument sql string
         String sql = new StringBuilder()
                 .append("insert into ")
-                .append(getTablePrefix())
+                .append(getPrefix())
                 .append(collectionName)
                 .append(" values( '")
                 .append(document.getId()).append("', '")
@@ -160,14 +161,10 @@ public class SQLiteLocalStorage extends LocalStorage {
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.INSERT_EXCEPTION,
                     "Sqlite local database, createDocument.",
-                    "Problem with createDocument. \n "+e.toString());
+                    "Problem with createDocument. \n "+e.toString(),
+                    e);
         } finally {
-            try {
-                statement.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            close(statement);
         }
         return document.getId();
     }
@@ -188,11 +185,11 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
     @Override
-    public String updateDocument(String collectionName, Document document) throws SqliteException {
+    protected String updateDocument(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
                 .append("update ")
-                .append(getTablePrefix())
+                .append(getPrefix())
                 .append(collectionName)
                 .append(" set jsondata='").append(document.getJsonData()).append("' ")
                 .append(createUpdateIndexPartSql(collectionName, document.getJsonData()))
@@ -205,24 +202,20 @@ public class SQLiteLocalStorage extends LocalStorage {
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.UPDATE_EXCEPTION,
                     "Sqlite local database, updateDocument.",
-                    "Problem with createDocument. \n "+e.toString());
+                    "Problem with createDocument. \n "+e.toString(),
+                    e);
         } finally {
-            try {
-                statement.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            close(statement);
         }
         return document.getId();
     }
 
     @Override
-    public boolean removeDocument(String collectionName, Document document) throws SqliteException {
+    protected boolean removeDocument(String collectionName, Document document) throws SqliteException {
         connectDB();
         String sql = new StringBuilder()
                 .append("delete from ")
-                .append(getTablePrefix())
+                .append(getPrefix())
                 .append(collectionName)
                 .append(" where id='")
                 .append(document.getId())
@@ -235,20 +228,27 @@ public class SQLiteLocalStorage extends LocalStorage {
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.UPDATE_EXCEPTION,
                     "Sqlite local database, delete.",
-                    "Problem with delete. \n "+e.toString());
+                    "Problem with delete. \n "+e.toString(),
+                    e);
         } finally {
-            try {
-                statement.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            close(statement);
         }
         return true;
     }
 
+    private void close(Statement statement){
+        try {
+            if (statement != null) {
+                statement.close();
+            }
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
-    public void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges) throws LocalStorageException {
+    protected void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges) throws LocalStorageException {
         for (DocumentChanges changes:remoteDocumentChanges){
             for (Document addedDocument:changes.getAddedDocuments()) {
                 this.createDocument(addedDocument.getCollection().getName(), addedDocument);
@@ -263,7 +263,7 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
     @Override
-    public List<Map<String, String>> find(Query query) throws SqliteException {
+    protected List<Map<String, String>> find(Query query) throws SqliteException {
         connectDB();
         String sql;
         if (query.isRawQuery()){
@@ -297,7 +297,8 @@ public class SQLiteLocalStorage extends LocalStorage {
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.QUERY_EXCEPTION,
                     "Sqlite local database, executing query.",
-                    "Problem with executing query. \n "+e.toString());
+                    "Problem with executing query. \n "+e.toString(),
+                    e);
         } finally {
             try {
                 if (statement != null) {
@@ -314,7 +315,7 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
     @Override
-    public Map<String, String> findOne(Query query) throws SqliteException {
+    protected Map<String, String> findOne(Query query) throws SqliteException {
         return null;
     }
 

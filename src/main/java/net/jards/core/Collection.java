@@ -20,27 +20,19 @@ public class Collection {
 	private final boolean local;
 
     /**
-     * Prefix for this instance.
-     */
-    private final String prefix;
-
-    /**
 	 * Package protected constructor of collection.
 	 *
-     * @param prefix prefix for this instance
      * @param name the name of collection.
      * @param local the indicator whether the collection is local.
      * @param storage storage which uses this collection
      */
-	Collection(String prefix, String name, boolean local, Storage storage) {
-        this.prefix = prefix;
+	Collection(String name, boolean local, Storage storage) {
 		this.name = name;
 		this.storage = storage;
 		this.local = local;
 	}
 
 	Collection(CollectionSetup collectionSetup, Storage storage){
-        this.prefix = collectionSetup.getTablePrefix();
         this.name = collectionSetup.getName();
         this.storage = storage;
         this.local = collectionSetup.isLocal();
@@ -93,10 +85,6 @@ public class Collection {
 	public boolean isLocal() {
 		return local;
 	}
-
-    String getFullName() {
-        return prefix+name;
-    }
 }
 
 

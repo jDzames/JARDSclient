@@ -11,7 +11,7 @@ public class StorageSetup {
 
     private final Map<String, CollectionSetup> localCollections = new HashMap<>();
 
-    private String tablePrefix;
+    private String prefix;
     private String dbAddress;
     private JSONPropertyExtractor jsonPropertyExtractor = null;
 
@@ -20,12 +20,15 @@ public class StorageSetup {
 
     }
 
-    public void setTablePrefix(String tablePrefix) {
-        this.tablePrefix = tablePrefix;
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+        for (CollectionSetup collectionSetup:localCollections.values()) {
+            collectionSetup.setPrefix(prefix);
+        }
     }
 
-    public String getTablePrefix() {
-        return tablePrefix;
+    public String getPrefix() {
+        return prefix;
     }
 
     /**
@@ -35,12 +38,12 @@ public class StorageSetup {
      * @param indexColumns any numbers of indexes (defined as path to value in json)
      */
     public void addCollectionSetup(String name, boolean local, String ... indexColumns){
-        CollectionSetup collectionSetup = new CollectionSetup(tablePrefix, name, local, indexColumns);
+        CollectionSetup collectionSetup = new CollectionSetup(prefix, name, local, indexColumns);
         localCollections.put(name, collectionSetup);
     }
 
     public void addCollectionSetup(CollectionSetup collectionSetup){
-        if (collectionSetup.getTablePrefix() != this.tablePrefix){
+        if (collectionSetup.getPrefix() != this.prefix){
             return; //TODO exception here? (wrong prefix)
         }
         localCollections.put(collectionSetup.getName(), collectionSetup);

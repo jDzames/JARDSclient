@@ -37,7 +37,8 @@ public class AppTest
     {
 
         StorageSetup storageSetup = new StorageSetup();
-        storageSetup.addCollectionSetup("LocalTest", true);
+        storageSetup.setPrefix("tests_");
+        storageSetup.addCollectionSetup("LocalTest", true, "example");
         DDPConnectionSettings connectionSettings = new DDPConnectionSettings("localhost", 3000, DDPConnectionSettings.LoginType.Username, "testik", "testik");
         RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, connectionSettings);
         LocalStorage localStorage = null;

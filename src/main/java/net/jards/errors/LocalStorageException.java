@@ -19,10 +19,12 @@ public abstract class LocalStorageException extends Exception{
     private int id;
     private String source;
     private String message;
+    private Exception innerException;
 
 
     public abstract int id();
     public abstract String source();
     public abstract String message();
+    public abstract Exception innerException();
 
 }

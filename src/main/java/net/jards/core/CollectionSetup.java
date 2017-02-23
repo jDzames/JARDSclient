@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class CollectionSetup {
 
-    private final String tablePrefix;
+    private String prefix;
     private final String name;
     private final boolean local;
 
@@ -18,12 +18,12 @@ public class CollectionSetup {
     private final Map<String, String> indexes = new HashMap<>();
     private final List<String> indexesOrder = new ArrayList<>();
 
-    public CollectionSetup(String tablePrefix, String name, boolean local, String... indexes) {
-        this.tablePrefix = tablePrefix;
+    public CollectionSetup(String prefix, String name, boolean local, String... indexes) {
+        this.prefix = prefix;
         this.name = name;
         this.local = local;
         for (String index: indexes){
-            this.indexes.put(index, "default");
+            this.indexes.put(index, "text");
             this.indexesOrder.add(index);
         }
     }
@@ -43,8 +43,12 @@ public class CollectionSetup {
         this.indexesOrder.add(name);
     }
 
-    public String getTablePrefix() {
-        return tablePrefix;
+    protected void setPrefix(String prefix) {
+        this.prefix = prefix;
+    }
+
+    public String getPrefix() {
+        return prefix;
     }
 
     public Map<String, String> getIndexes() {
@@ -56,7 +60,7 @@ public class CollectionSetup {
     }
 
     public String getFullName() {
-        return tablePrefix+name;
+        return prefix +name;
     }
 
     public boolean isLocal() {

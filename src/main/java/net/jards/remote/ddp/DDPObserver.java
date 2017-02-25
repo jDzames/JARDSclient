@@ -13,7 +13,9 @@ import java.util.*;
 import static net.jards.core.Connection.STATE;
 
 /**
+ *
  * @author kenyee
+ * edited by jdzama
  *
  * DDP client observer that handles enough messages for unit tests to work
  */
@@ -24,7 +26,7 @@ public class DDPObserver extends DDPListener implements Observer {
     private String mSession;
     private String mToken;
     private String mUserId;
-    public String mPingId;
+    //public String mPingId;
 
     private Map<Integer, DDPSubscription> subscriptions;
     private Map<Integer, String> methods;
@@ -119,13 +121,14 @@ public class DDPObserver extends DDPListener implements Observer {
                     //error?
                     return;
                 }
-                String subscriptionName = subscriptions.get(id).getSubscriptionName();
-                subscriptions.remove(id);
+                Integer idInt = Integer.parseInt(id);
+                String subscriptionName = subscriptions.get(idInt).getSubscriptionName();
+                subscriptions.remove(idInt);
                 Map<String, Object> error = (Map<String, Object>)jsonFields.get(DdpMessageField.ERROR);
                 if (error != null) {
-                    int mErrorCode = (int) Math.round((Double)error.get("error"));
+                    //int mErrorCode = (int) Math.round((Double)error.get("error"));
                     String mErrorMsg = (String) error.get("message");
-                    String mErrorType = (String) error.get("errorType");
+                    //String mErrorType = (String) error.get("errorType");
                     String mErrorReason = (String) error.get("reason");
                     ddpRemoteStorage.unsubscibed(subscriptionName, new DefaultRemoteStorageError(-1, "server", mErrorMsg+", "+mErrorReason));
                 } else {
@@ -135,26 +138,28 @@ public class DDPObserver extends DDPListener implements Observer {
             }
             if (msgtype.equals(DdpMessageType.RESULT)) {
                 int methodId = Integer.parseInt((String) jsonFields.get(DdpMessageField.ID));
-                Map<String, Object> resultFields = (Map<String, Object>) jsonFields.get(DdpMessageField.RESULT);
-                if (resultFields.containsKey("token")) {
-                    // it was login method (nie iste!)
-                    mToken = (String) resultFields.get("token");
-                    mUserId = (String) resultFields.get("id");
-                    //
-                    mDdpState = STATE.LoggedIn;
-                    ddpRemoteStorage.connectionChanged(new Connection(STATE.LoggedIn, null, null, null, null));
+                if (jsonFields.containsKey(DdpMessageField.RESULT)){
+                    Map<String, Object> resultFields = (Map<String, Object>) jsonFields.get(DdpMessageField.RESULT);
+                    if (resultFields.containsKey("token")) {
+                        // it was login method (not sure!)
+                        mToken = (String) resultFields.get("token");
+                        mUserId = (String) resultFields.get("id");
+                        //
+                        mDdpState = STATE.LoggedIn;
+                        ddpRemoteStorage.connectionChanged(new Connection(STATE.LoggedIn, null, null, null, null));
+                    }
                 }
-                if (jsonFields.containsKey("error")) {
+                if (jsonFields.containsKey(DdpMessageField.ERROR)) {
                     Map<String, Object> error = (Map<String, Object>) jsonFields.get(DdpMessageField.ERROR);
-                    Integer mErrorCode = (int) Math.round((Double)error.get("error"));
+                    //Integer mErrorCode = (int) Math.round((Double)error.get("error"));
                     String mErrorMsg = (String) error.get("message");
-                    String mErrorType = (String) error.get("errorType");
+                    //String mErrorType = (String) error.get("errorType");
                     String mErrorReason = (String) error.get("reason");
-                    ddpRemoteStorage.onError(new DefaultRemoteStorageError(-1, "server", mErrorMsg));
+                    ddpRemoteStorage.onError(new DefaultRemoteStorageError(-1, "server", mErrorMsg + mErrorReason));
                 }
                 methods.remove(methodId);
                 //Library has probably problem when you send id from here somewhere else. No idea why
-                //but next row produces error if id is not sended through other object (string here).
+                //but next row produces error if id is not sent through other object (string here).
                 //ddpRemoteStorage.requestCompleted(""+methodId, resultFields);
             }
             if (msgtype.equals(DdpMessageType.UPDATED)) {

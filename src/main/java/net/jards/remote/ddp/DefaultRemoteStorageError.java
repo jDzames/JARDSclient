@@ -30,6 +30,6 @@ public class DefaultRemoteStorageError implements RemoteStorageError {
 
     @Override
     public String message() {
-        return message();
+        return this.message;
     }
 }

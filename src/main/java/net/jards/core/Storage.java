@@ -22,14 +22,17 @@ public class Storage {
 
 			while (running) {
 
-                List<DocumentChanges> remoteDocumentChanges = null;
+                List<DocumentChanges> remoteDocumentChanges = new LinkedList<>();
                 synchronized (remoteChanges) {
-                    while (!remoteChanges.isEmpty()){
-                        //add all of document changes that came from server (in order)
-                        remoteDocumentChanges.add(remoteChanges.poll().getDocumentChanges());
+                    if (!remoteChanges.isEmpty()){
+                        while (!remoteChanges.isEmpty()){
+                            //add all of document changes that came from server (in order)
+                            UpdateDbRequest updateDbRequest = remoteChanges.poll();
+                            remoteDocumentChanges.add(updateDbRequest.getDocumentChanges());
+                        }
                     }
                 }
-                if (remoteDocumentChanges != null){
+                if (!remoteDocumentChanges.isEmpty()){
                     //TODO write all changes
                     try {
                         localStorage.applyDocumentChanges(remoteDocumentChanges);
@@ -140,7 +143,14 @@ public class Storage {
 				//Convert remote changes into documents
                 DocumentChanges documentChanges = new DocumentChanges();
                 for (RemoteDocumentChange change:changes){
-                    Document document = new Document(getCollection(change.getCollection()), change.getId());
+                    Document document = null;
+                    try {
+                        //if this document's collection doesn't exist, create it
+                        document = new Document(getOrCreateCollection(change.getCollection()), change.getId());
+                    } catch (LocalStorageException e) {
+                        e.printStackTrace();
+                        continue;
+                    }
                     document.setJsonData(change.getData());
                     if (change.getType() == INSERT){
                         documentChanges.addDocument(document);
@@ -173,7 +183,7 @@ public class Storage {
 
             @Override
             public void onError(RemoteStorageError error) {
-                System.out.println("ERROR: "+error.toString());
+                System.out.println("ERROR! source: "+error.source()+", message: "+error.message());
             }
 
 			public void collectionInvalidated(String collection) throws LocalStorageException {
@@ -197,7 +207,7 @@ public class Storage {
 	 * Returns document collection. If collection have not been specified in StorageSetup, returns null.
 	 * 
 	 * @param collectionName name of collection
-	 * @return selected collection
+	 * @return selected collection or null if collection was not found
 	 */
 	public Collection getCollection(String collectionName) {
         CollectionSetup collectionSetup = localStorage.getCollectionSetup(collectionName);
@@ -206,6 +216,25 @@ public class Storage {
         }
 		return new Collection(collectionSetup, this);
 	}
+
+    /**
+     * Returns document collection. If collection have not been specified in StorageSetup,
+     * creates new (not local) collection and returns it.
+     *
+     * @param collectionName name of collection
+     * @return selected collection or new created (not local) collection
+     */
+    public Collection getOrCreateCollection(String collectionName) throws LocalStorageException {
+        CollectionSetup collectionSetup = localStorage.getCollectionSetup(collectionName);
+        if (collectionSetup == null){
+            //collectionSetup = new CollectionSetup(localStorage.getPrefix(), collectionName, false);
+            //localStorage.addCollectionSetup(collectionSetup);
+            //localStorage.removeCollection(collectionSetup);
+            //localStorage.addCollection(collectionSetup);
+            return new Collection(collectionName, false, this);
+        }
+        return new Collection(collectionSetup, this);
+    }
 
     public boolean isRunning() {
         return running;

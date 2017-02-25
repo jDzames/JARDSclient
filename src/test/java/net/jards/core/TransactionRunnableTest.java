@@ -10,16 +10,18 @@ public class TransactionRunnableTest implements  TransactionRunnable {
     @Override
     public void run(ExecutionContext context, Transaction transaction, Object... arguments) {
         Document d = new Document();
-        d.setJsonData("{example:data}");
-        Collection collection = context.getCollection("LocalTest");
+        d.setJsonData("{test1:Added through StoragesTogether}");
+        Collection collection = context.getCollection("tasks");
         try {
             d = collection.create(d, transaction);
-            d.setJsonData("{example:changedData}");
-            d = collection.update(d, transaction);
+            //d.setJsonData("{example:changedData}");
+            //d = collection.update(d, transaction);
+            //System.out.println(d.getJsonData());
+            //collection.remove(d, transaction);
         } catch (LocalStorageException e) {
             e.printStackTrace();
         }
-        System.out.println(d.getId());
+        //System.out.println(d.getId());
     }
 
 }

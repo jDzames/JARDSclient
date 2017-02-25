@@ -159,10 +159,10 @@ public class DDPRemoteStorage extends RemoteStorage {
      */
     @Override
 	protected void call(String method, Object[] arguments, String uuidSeed, ExecutionRequest request) {
-		//TODO  seed? co je v storage ohladne toho?
+		//TODO  seed
         //check method name and arguments with request or no? or if request is not null?
-
-		int methodId = ddpClient.call(method, arguments);
+        System.out.println("volanie metody poslane");
+        int methodId = ddpClient.call(method, arguments);
 		methods.put(methodId, request);
 		ddpObserver.addMethod(methodId, method);
 	}
@@ -183,6 +183,7 @@ public class DDPRemoteStorage extends RemoteStorage {
             documentMap.put("id", document.getId());
             documentMap.put("collection", collectionName);
             documentMap.put("jsonData", document.getJsonData());
+            System.out.println("pokus a pridanie: "+documentMap.toString());
             int methodId = ddpClient.collectionInsert(collectionName, documentMap);
             methods.put(methodId, request);
             ddpObserver.addMethod(methodId, "collectionInsert");

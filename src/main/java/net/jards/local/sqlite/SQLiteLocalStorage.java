@@ -69,7 +69,6 @@ public class SQLiteLocalStorage extends LocalStorage {
                     .append(index)
                     .append(");");
         }
-        System.out.println(createIndexesSql.toString());
 
         //sql for creating table
         String sql = new StringBuilder()
@@ -80,7 +79,6 @@ public class SQLiteLocalStorage extends LocalStorage {
                 .append(");")
                 .append(createIndexesSql)
                 .toString();
-        System.out.println(sql);
         Statement statement = null;
         try {
             statement = connection.createStatement();
@@ -114,12 +112,7 @@ public class SQLiteLocalStorage extends LocalStorage {
                     "Problem adding collection. \n "+e.toString(),
                     e);
         } finally {
-            try {
-                statement.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            close(statement);
         }
     }
 
@@ -247,17 +240,42 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
+    /**
+     * Applies changes to local database. Creates new collections if needed, insert new documents, updates edited and removed deleted.
+     * @param remoteDocumentChanges List of DocumentChanges. Can contain collections which does not exist in local database.
+     * @throws LocalStorageException throws exception if any of write updates fails
+     */
     @Override
     protected void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges) throws LocalStorageException {
         for (DocumentChanges changes:remoteDocumentChanges){
             for (Document addedDocument:changes.getAddedDocuments()) {
-                this.createDocument(addedDocument.getCollection().getName(), addedDocument);
+                String collectionName = addedDocument.getCollection().getName();
+                if (getCollectionSetup(collectionName) == null){
+                    //this table is not in database, create new (server sent document from new collection)
+                    CollectionSetup newCollectionSetup = new CollectionSetup(getPrefix(), collectionName, false);
+                    addCollectionSetup(newCollectionSetup);
+                    removeCollection(newCollectionSetup);
+                    addCollection(newCollectionSetup);
+                }
+                this.createDocument(collectionName, addedDocument);
             }
             for (Document updatedDocument:changes.getUpdatedDocuments()) {
-                this.updateDocument(updatedDocument.getCollection().getName(), updatedDocument);
+                String collectionName = updatedDocument.getCollection().getName();
+                if (getCollectionSetup(collectionName) == null){
+                    //this table is not in database, cant edit it's documents
+                    //TODO error also?
+                    continue;
+                }
+                this.updateDocument(collectionName, updatedDocument);
             }
             for (Document removedDocument:changes.getRemovedDocuments()) {
-                this.removeDocument(removedDocument.getCollection().getName(), removedDocument);
+                String collectionName = removedDocument.getCollection().getName();
+                if (getCollectionSetup(collectionName) == null){
+                    //this table is not in database, cant remove it's documents
+                    //TODO error also?
+                    continue;
+                }
+                this.removeDocument(collectionName, removedDocument);
             }
         }
     }

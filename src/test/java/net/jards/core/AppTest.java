@@ -8,6 +8,8 @@ import net.jards.local.sqlite.SQLiteLocalStorage;
 import net.jards.remote.ddp.DDPConnectionSettings;
 import net.jards.remote.ddp.DDPRemoteStorage;
 
+import static net.jards.remote.ddp.DDPConnectionSettings.LoginType.Username;
+
 /**
  * Unit test for simple App.
  */
@@ -39,7 +41,8 @@ public class AppTest
         StorageSetup storageSetup = new StorageSetup();
         storageSetup.setPrefix("tests_");
         storageSetup.addCollectionSetup("LocalTest", true, "example");
-        DDPConnectionSettings connectionSettings = new DDPConnectionSettings("localhost", 3000, DDPConnectionSettings.LoginType.Username, "testik", "testik");
+        storageSetup.addCollectionSetup("tasks", false);
+        DDPConnectionSettings connectionSettings = new DDPConnectionSettings("localhost", 3000, Username, "testik", "testik");
         RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, connectionSettings);
         LocalStorage localStorage = null;
         try {
@@ -47,27 +50,31 @@ public class AppTest
         } catch (LocalStorageException e) {
             e.printStackTrace();
             //System.out.println(e.message());
-            //assertNotNull(localStorage);
-            return;
         }
+
+        assertNotNull(localStorage);
 
         Storage storage = new Storage(storageSetup, remoteStorage, localStorage);
         storage.start("");
 
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
-        //storage.subscribe("tasks");
+        storage.subscribe("tasks");
 
         /*Object[] methodArgs = new Object[1];
         methodArgs[0] = "Pridany cez DDP 2";*/
-		//storage.callAsync("tasks.createDocument", "Pridany cez DDP 3");
-        //storage.executeAsync(new TransactionRunnableTest());
+		//storage.callAsync("tasks.insert", "Pridany cez DDP 4");
 
-        storage.executeLocallyAsync(new TransactionRunnableTest());
+        storage.executeAsync(new TransactionRunnableTest());
 
 
 
         try {
-            Thread.sleep(10000);
+            Thread.sleep(12000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

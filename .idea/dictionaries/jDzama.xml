@@ -2,7 +2,12 @@
   <dictionary name="jDzama">
     <words>
       <w>jsondata</w>
+      <w>krbc</w>
+      <w>msgtype</w>
+      <w>pridany</w>
       <w>sqlite</w>
+      <w>storages</w>
+      <w>testik</w>
       <w>unsubscribed</w>
     </words>
   </dictionary>

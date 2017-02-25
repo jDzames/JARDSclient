@@ -86,7 +86,14 @@ public abstract class LocalStorage {
 
     }
 
+    protected void addCollectionSetup(CollectionSetup collectionSetup){
+        this.collections.put(collectionSetup.getName(), collectionSetup);
+    }
+
     protected CollectionSetup getCollectionSetup(String collectionName){
+        if (!collections.containsKey(collectionName)){
+            return null;
+        }
         return  collections.get(collectionName);
     }
 
@@ -125,6 +132,11 @@ public abstract class LocalStorage {
 
     protected abstract boolean removeDocument(String collectionName, Document document) throws LocalStorageException;
 
+    /**
+     * Applies changes to local database. Creates new collections if needed, insert new documents, updates edited and removed deleted.
+     * @param remoteDocumentChanges List of DocumentChanges. Can contain collections which does not exist in local database.
+     * @throws LocalStorageException throws exception if any of write updates fails
+     */
     protected abstract void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges) throws LocalStorageException;
 
     protected abstract List<Map<String, String>> find(Query query) throws LocalStorageException;

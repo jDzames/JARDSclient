@@ -1,6 +1,15 @@
 package net.jards.core;
 
+import java.util.UUID;
+
 public class ExecutionRequest {
+
+    public enum RequestType{
+        ExecuteLocally,
+        Execute,
+        Call,
+        Subscribe
+    }
 
 	/**
 	 * Unique identifier of the request.
@@ -11,25 +20,40 @@ public class ExecutionRequest {
 
 	private Transaction transaction;
 
+    private Subscription subscriptionObject;
+
 	private ExecutionContext context;
 
 	private Object[] attributes;
 
 	private TransactionRunnable runnable;
 
-	private boolean local;
-    private boolean speculation;
+    private RequestType requestType;
 
     private boolean waiting = false;
 
 	public ExecutionRequest(Transaction transaction) {
 		this.transaction = transaction;
-		id = "" + (int) Math.random()*1000000;
+		id = UUID.randomUUID().toString();
 		methodName = "";
-		local = false;
 	}
 
-	public boolean isCompleted() {
+    boolean isExecuteLocally() {
+        return this.requestType == RequestType.ExecuteLocally;
+    }
+
+    boolean isExecute() {
+        return this.requestType == RequestType.Execute;
+    }
+    boolean isCall() {
+        return this.requestType == RequestType.Call;
+    }
+
+    boolean isSubscribe(){
+        return this.requestType == RequestType.Subscribe;
+    }
+
+    public boolean isCompleted() {
 		return false;
 	}
 
@@ -59,7 +83,11 @@ public class ExecutionRequest {
         }
     }
 
-	void setAttributes(Object[] attributes) {
+    void setSubscriptionObject(Subscription subscriptionObject) {
+        this.subscriptionObject = subscriptionObject;
+    }
+
+    void setAttributes(Object[] attributes) {
 		this.attributes = attributes;
 	}
 
@@ -75,12 +103,12 @@ public class ExecutionRequest {
 		this.context = context;
 	}
 
-	void setLocal(boolean local) {
-		this.local = local;
-	}
+	void setRequestType(RequestType requestType) {
+        this.requestType = requestType;
+    }
 
-    void setSpeculation(boolean speculation) {
-        this.speculation = speculation;
+    Subscription getSubscriptionObject() {
+        return subscriptionObject;
     }
 
     Object[] getAttributes() {
@@ -107,12 +135,8 @@ public class ExecutionRequest {
 		return runnable;
 	}
 
-	boolean isLocal() {
-		return local;
-	}
-
-    boolean isSpeculation() {
-        return speculation;
+	RequestType getRequestType() {
+        return requestType;
     }
 }
 

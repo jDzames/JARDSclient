@@ -9,7 +9,7 @@ public class Connection {
         Disconnected,
         Connected,
         LoggedIn,
-        Closed,
+        Closed
     }
 
     private STATE state;

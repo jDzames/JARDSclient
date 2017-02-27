@@ -6,6 +6,9 @@ package net.jards.core;
  */
 public abstract class RemoteStorage {
 
+
+
+
 	protected abstract void start(String sessionState);
 
 	protected abstract void stop();

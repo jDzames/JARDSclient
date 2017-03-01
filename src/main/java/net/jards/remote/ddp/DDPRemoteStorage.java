@@ -11,6 +11,7 @@ import net.jards.errors.RemoteStorageError;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 
 /**
@@ -20,7 +21,7 @@ import java.util.Map;
  */
 public class DDPRemoteStorage extends RemoteStorage {
 
-	private final String serverAdress;
+	private final String serverAddress;
 	private final int serverPort;
     private final DDPConnectionSettings.LoginType loginType;
     private final String resumeToken;
@@ -33,17 +34,18 @@ public class DDPRemoteStorage extends RemoteStorage {
     private DDPObserver ddpObserver;
     private RemoteStorageListener remoteStorageListener;
 
-	private final Map<String, DDPSubscription> subscriptions;
+	private final Map<Integer, ExecutionRequest> subscriptions;
 	private final Map<Integer, ExecutionRequest> methods;
+    private final Map<Integer, Integer> executeMethodsCount;
 
 
     /**
-     * Creates DDPRemoteStorage with given parametres.
+     * Creates DDPRemoteStorage with given parameters.
      * @param storageSetup with settings
      * @param connectionSettings containing server adress, port and login information
      */
     public DDPRemoteStorage(StorageSetup storageSetup, DDPConnectionSettings connectionSettings){
-		this.serverAdress = connectionSettings.getServerAddress();
+		this.serverAddress = connectionSettings.getServerAddress();
         this.serverPort = connectionSettings.getServerPort();
         this.loginType = connectionSettings.getLoginType();
         this.resumeToken = connectionSettings.getResumeToken();
@@ -53,7 +55,10 @@ public class DDPRemoteStorage extends RemoteStorage {
 
 		subscriptions = new HashMap<>();
 		methods = new HashMap<>();
+        executeMethodsCount = new HashMap<>();
         session = null;
+
+        setReadyForConnect();
 	}
 
     /**
@@ -63,7 +68,7 @@ public class DDPRemoteStorage extends RemoteStorage {
      * @param session String containing informations about saved session, used to continue work with server.
      */
     public DDPRemoteStorage(StorageSetup storageSetup, DDPConnectionSettings connectionSettings, String session){
-        this.serverAdress = connectionSettings.getServerAddress();
+        this.serverAddress = connectionSettings.getServerAddress();
         this.serverPort = connectionSettings.getServerPort();
         this.loginType = connectionSettings.getLoginType();
         this.resumeToken = connectionSettings.getResumeToken();
@@ -73,28 +78,38 @@ public class DDPRemoteStorage extends RemoteStorage {
 
         subscriptions = new HashMap<>();
         methods = new HashMap<>();
+        executeMethodsCount = new HashMap<>();
         this.session = session;
+
+        setReadyForConnect();
+    }
+
+    private void setReadyForConnect(){
+        try {
+            ddpClient = new DDPClient(serverAddress, serverPort);
+
+            ddpObserver = new DDPObserver(this);
+            ddpClient.addObserver(ddpObserver);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
-     * Connects to server, logs user (if login informations provided) and starts to listen for changes from server.
+     * Connects to server, logs user (if login information provided) and starts to listen for changes from server.
      * @param sessionState session to reconnect on server, if null clients starts new connection
      */
     @Override
 	protected void start(String sessionState) {
 		try {
-			ddpClient = new DDPClient(serverAdress, serverPort);
-
-			ddpObserver = new DDPObserver(this);
-			ddpClient.addObserver(ddpObserver);
 			ddpClient.connect();
 
             //TODO session - ?
             // https://forums.meteor.com/t/meteor-passing-session-values-from-client-to-server/5716
             //http://stackoverflow.com/questions/30852792/meteor-passing-session-values-from-client-to-server
-            //asi spravit pre kniznicu a poslat im
+            //... do it for library and sent it to them
 
-		} catch (URISyntaxException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
@@ -113,32 +128,31 @@ public class DDPRemoteStorage extends RemoteStorage {
     /**
      * Subscribes to a collection on server. Called by Storage.
      * @param subscriptionName name of collection
-     * @param arguments additional arguments
-     * @return Subscription handle
+     * @param executionRequest request with additional arguments
+     * @return id of subscription
      */
     @Override
-	protected Subscription subscribe(String subscriptionName, Object... arguments) {
+	protected int subscribe(String subscriptionName, ExecutionRequest executionRequest) {
         //if I am connected to server already, I can subscribe
         /*if (ddpObserver.getmDdpState() == Connection.STATE.Connected ||
                 ddpObserver.getmDdpState() == Connection.STATE.LoggedIn)*/
-        int subId = ddpClient.subscribe(subscriptionName, arguments); //new Object[]{});
-
-		DDPSubscription subscription = new DDPSubscription(this, subscriptionName, subId, arguments, false);
-		subscriptions.put(subscriptionName, subscription);
-		ddpObserver.addSubscription(subId, subscription);
-		return subscription;
+        int subId = ddpClient.subscribe(subscriptionName, executionRequest.getAttributes()); //new Object[]{});
+        executionRequest.setRemoteCallsId(subId);
+		subscriptions.put(subId, executionRequest);
+        return subId;
 	}
 
     /**
      * Unsubscribes selected subscription. Called by Storage.
-     * @param subscriptionName name of selected subscription
+     * @param request execution request with id of this subscription
      */
-    protected void unsubscribe(String subscriptionName){
-		if (!subscriptions.containsKey(subscriptionName)){
-			//TODO exception
+    @Override
+    protected void unsubscribe(ExecutionRequest request){
+		if (!subscriptions.containsKey(request.getRemoteCallsId())){
+			//TODO exception? already unsubscribed?
+            return;
 		}
-		int subId = subscriptions.get(subscriptionName).getId();
-		ddpClient.unsubscribe(subId);
+		/*int id = */ddpClient.unsubscribe(request.getRemoteCallsId());
 	}
 
     /**
@@ -163,8 +177,9 @@ public class DDPRemoteStorage extends RemoteStorage {
         //check method name and arguments with request or no? or if request is not null?
         System.out.println("volanie metody poslane");
         int methodId = ddpClient.call(method, arguments);
+        request.setRemoteCallsId(methodId);
 		methods.put(methodId, request);
-		ddpObserver.addMethod(methodId, method);
+		//ddpObserver.addMethod(methodId, method);
 	}
 
     /**
@@ -175,7 +190,12 @@ public class DDPRemoteStorage extends RemoteStorage {
     @Override
 	protected void applyChanges(DocumentChanges changes, ExecutionRequest request) {
         //http://stackoverflow.com/questions/31631810/access-denied-403-when-updating-user-accounts-client-side-in-meteor
-        //TODO test if it works well with ids (it should as its just "call")
+
+        //id to know when are all done (decrement count for that id in map for execute calls)
+        int randomId = UUID.randomUUID().hashCode();
+        request.setRemoteCallsId(randomId);
+        int count = 0;
+
 		// Add documents
         for (Document document :changes.getAddedDocuments()) {
             String collectionName = document.getCollection().getName();
@@ -183,10 +203,10 @@ public class DDPRemoteStorage extends RemoteStorage {
             documentMap.put("id", document.getId());
             documentMap.put("collection", collectionName);
             documentMap.put("jsonData", document.getJsonData());
-            System.out.println("pokus a pridanie: "+documentMap.toString());
             int methodId = ddpClient.collectionInsert(collectionName, documentMap);
             methods.put(methodId, request);
-            ddpObserver.addMethod(methodId, "collectionInsert");
+            //ddpObserver.addMethod(methodId, "collectionInsert");
+            count++;
         }
         // Update documents
         for (Document document :changes.getUpdatedDocuments()) {
@@ -195,19 +215,24 @@ public class DDPRemoteStorage extends RemoteStorage {
             documentMap.put("id", document.getId());
             documentMap.put("collection", collectionName);
             documentMap.put("jsonData", document.getJsonData());
-            String docId = document.getId().toString();
+            String docId = document.getId();
             int methodId = ddpClient.collectionUpdate(collectionName, docId, documentMap);
             methods.put(methodId, request);
-            ddpObserver.addMethod(methodId, "collectionUpdate");
+            //ddpObserver.addMethod(methodId, "collectionUpdate");
+            count++;
         }
         // Remove documents
         for (Document document :changes.getRemovedDocuments()) {
             String collectionName = document.getCollection().getName();
-            String docId = document.getId().toString();
+            String docId = document.getId();
             int methodId = ddpClient.collectionDelete(collectionName, docId);
             methods.put(methodId, request);
-            ddpObserver.addMethod(methodId, "collectionDelete");
+            //ddpObserver.addMethod(methodId, "collectionDelete");
+            count++;
         }
+
+        //add count to map for this id
+        executeMethodsCount.put(randomId, count);
 	}
 
     /**
@@ -226,11 +251,12 @@ public class DDPRemoteStorage extends RemoteStorage {
 
     /**
      * Method called when this subscription becomes ready (all data first time arrived into the client)
-     * @param subscriptionName name of selected subscription
+     * @param subscriptionId id of ready subscription
      */
-    protected void subscriptionReady(String subscriptionName){
-		//TODO something to do?
-        //ked v observeri pride
+    void subscriptionReady(int subscriptionId){
+        if (subscriptions.containsKey(subscriptionId)){
+            remoteStorageListener.requestCompleted(subscriptions.get(subscriptionId));
+        }
 	}
 
 
@@ -238,10 +264,21 @@ public class DDPRemoteStorage extends RemoteStorage {
      * Called when result message from server comes. It is sent into attached RemoteStorageListener.
      * @param methodId id of method
      */
-    protected void requestCompleted(Integer methodId){
+    void requestCompleted(Integer methodId){
         //Integer methodIdInt = Integer.parseInt(methodId);
         if (methods.containsKey(methodId)){
-            this.remoteStorageListener.requestCompleted(methods.get(methodId));
+            ExecutionRequest request = methods.get(methodId);
+            if (request.isExecute()){
+                //if it is execute - there are more calls - listener method after last one is done
+                int actualCount = executeMethodsCount.get(request.getRemoteCallsId());
+                //methodId is id on calls map, given my ddpClient. request's id is for execute calls
+                actualCount--;
+                if (actualCount <= 0){
+                    this.remoteStorageListener.requestCompleted(methods.get(methodId));
+                }
+            } else {
+                this.remoteStorageListener.requestCompleted(methods.get(methodId));
+            }
             methods.remove(methodId);
         }
 	}
@@ -250,15 +287,16 @@ public class DDPRemoteStorage extends RemoteStorage {
      * Called when DDPObserver receives some data from server. It is sent into attached RemoteStorageListener.
      * @param changes array of changes - in this situation it is array of length 1 with one added/updated/removed document
      */
-    protected void changesReceived(RemoteDocumentChange[] changes){
+    void changesReceived(RemoteDocumentChange[] changes){
 		this.remoteStorageListener.changesReceived(changes);
 	}
 
     /**
      * Called when server confirms that collection is invalidated. It is sent into attached RemoteStorageListener.
-     * @param collection
+     * @param collection name of collection which was removed
+     * @throws LocalStorageException can be thrown when collection is being removed from local storage
      */
-    protected void collectionInvalidated(String collection) throws LocalStorageException {
+    void collectionInvalidated(String collection) throws LocalStorageException {
 		this.remoteStorageListener.collectionInvalidated(collection);
 	}
 
@@ -266,18 +304,18 @@ public class DDPRemoteStorage extends RemoteStorage {
      * Called when connection changes. It is sent into attached RemoteStorageListener.
      * @param connection object with information about connection
      */
-    protected void connectionChanged(Connection connection){
+    void connectionChanged(Connection connection){
         //If I connected, get session
         if (connection.getState() == Connection.STATE.Connected &&
-                connection.getCode() == Connection.CONNECTED_AFTER_BEING_DISCONNECTED){
+                connection.getCode().equals(Connection.CONNECTED_AFTER_BEING_DISCONNECTED)){
             this.session = connection.getSession();
-            //If I just connected and also I have login parametres, then login now.
+            //If I just connected and also I have login parameters, then login now.
             if (loginType != DDPConnectionSettings.LoginType.NoLogin){
                 login();
             }
             //I subscribe to all subscriptions (and set their id, cause it can change)
-            subscriptions.forEach((subName, sub) ->
-                sub.setId(ddpClient.subscribe(sub.getSubscriptionName(), sub.getArguments()))
+            subscriptions.forEach((subId, request) ->
+                request.setRemoteCallsId(ddpClient.subscribe(request.getSubscriptionName(), request.getAttributes()))
             );
         }
 		this.remoteStorageListener.connectionChanged(connection);
@@ -285,19 +323,25 @@ public class DDPRemoteStorage extends RemoteStorage {
 
     /**
      * Called when server stops subscription. It is sent into attached RemoteStorageListener.
-     * @param subscriptionName name of stopped subscription
+     * @param subscriptionId id of stopped subscription
      * @param error error (optional, might be null)
      */
-    protected void unsubscibed(String subscriptionName, RemoteStorageError error){
-		this.subscriptions.remove(subscriptionName);
-		this.remoteStorageListener.unsubscribed(subscriptionName, error);
+    void unsubscribed(int subscriptionId, RemoteStorageError error){
+        if (subscriptions.containsKey(subscriptionId)){
+            this.remoteStorageListener.unsubscribed(subscriptions.get(subscriptionId).getSubscriptionName(),
+                    subscriptionId, error);
+            this.remoteStorageListener.requestCompleted(subscriptions.get(subscriptionId));
+            this.subscriptions.remove(subscriptionId);
+        } else {
+            this.remoteStorageListener.unsubscribed("", subscriptionId, error);
+        }
 	}
 
     /**
      * Called when server sends Error to client. It is sent into attached RemoteStorageListener.
      * @param error error from server
      */
-    protected void onError(RemoteStorageError error){
+    void onError(RemoteStorageError error){
 		this.remoteStorageListener.onError(error);
 	}
 
@@ -307,9 +351,9 @@ public class DDPRemoteStorage extends RemoteStorage {
      */
     private void login(){
         if (loginType == DDPConnectionSettings.LoginType.NoLogin){
-            return;
+            //return;
         } else if (loginType == DDPConnectionSettings.LoginType.Token){
-            //TODO token pride po prvom prihlaseni v result sprave, je to string potom ked som ulozil
+            // token comes after login in first result message, save it as string
             TokenAuth tokenAuth = new TokenAuth(this.resumeToken);
             Object[] methodArgs = new Object[]{tokenAuth};
             ddpClient.call("login", methodArgs);

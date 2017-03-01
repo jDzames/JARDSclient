@@ -28,6 +28,9 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
     @Override
     public Map<String, Object> extractPropertyValues(String jsonString, List<String> propertyPaths) {
         Map<String, Object> values = new HashMap<>();
+        if (jsonString == null || "".equals(jsonString)){
+            return values;
+        }
         ReadContext ctx = JsonPath.using(listConfig).parse(jsonString);
         for (String propertyPath:propertyPaths) {
             values.put(propertyPath, ctx.read("$."+propertyPath));

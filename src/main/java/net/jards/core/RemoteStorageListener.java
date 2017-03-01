@@ -16,7 +16,7 @@ public interface RemoteStorageListener {
 
 	void connectionChanged(Connection connection);
 
-	void unsubscribed(String subscriptionName, RemoteStorageError error);
+	void unsubscribed(String subscriptionName, int subscriptionId, RemoteStorageError error);
 
 	void onError(RemoteStorageError error);
 }

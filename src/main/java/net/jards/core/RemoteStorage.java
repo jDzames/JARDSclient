@@ -6,18 +6,15 @@ package net.jards.core;
  */
 public abstract class RemoteStorage {
 
-
-
-
 	protected abstract void start(String sessionState);
 
 	protected abstract void stop();
 
 	protected abstract void setListener(RemoteStorageListener listener);
 
-	protected abstract Subscription subscribe(String subscriptionName, Object[] arguments);
+	protected abstract int subscribe(String subscriptionName, ExecutionRequest request);
 
-	protected abstract void unsubscribe(String subscriptionName);
+	protected abstract void unsubscribe(ExecutionRequest request);
 
 	protected abstract void call(String method, Object[] arguments, String uuidSeed, ExecutionRequest request);
 
@@ -25,7 +22,7 @@ public abstract class RemoteStorage {
 
 	public abstract String getSessionState();
 
-    public abstract IdGenerator getIdGenerator(String seed);
+    protected abstract IdGenerator getIdGenerator(String seed);
 
 
 }

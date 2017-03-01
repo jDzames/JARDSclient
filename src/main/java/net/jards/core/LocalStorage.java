@@ -28,21 +28,6 @@ public abstract class LocalStorage {
         collections.put("setup_hash_table", setupHashCollection);
         //compute hash to be able to compare
         setupHash = computeSetupHash();
-
-        try{
-            Map<String, String> savedSetupHashDocument = findOne(null/*query for setup_hash_collection to findOne any*/);
-            int savedSetupHash = Integer.parseInt(savedSetupHashDocument.get("jsondata"));
-            //compare hashes, if same, done, if different - createDocument new collections (drop those cause prefix)
-            if (setupHash != savedSetupHash){
-                //fillSetupCollections(); not used
-                createCollectionsFromSetup();
-            }
-        } catch (Exception e) {
-            //table does not exist or other error, createDocument new collections, createDocument into 2 special ones
-            //try in method, if error - throw error, something wrong
-            //fillSetupCollections(); not used
-            createCollectionsFromSetup();
-        }
     }
 
     /**
@@ -102,19 +87,45 @@ public abstract class LocalStorage {
     }
 
     /**
-     * TODO check if collections from storageSetup exists, if no - createDocument them
+     * Checks if collections from storageSetup exists, if no - creates them.
      * Starts LocalStorage, if you want to continue, read work that has not been saved (unconfirmed changes)
      * and return it. Storage will use it.
      * @return List of saved requests
      */
-    protected abstract List<ExecutionRequest> start();
+    List<ExecutionRequest> start() throws LocalStorageException {
+        try{
+            Map<String, String> savedSetupHashDocument = findOne(null/*query for setup_hash_collection to findOne any*/);
+            int savedSetupHash = Integer.parseInt(savedSetupHashDocument.get("jsondata"));
+            //compare hashes, if same, done, if different - createDocument new collections (drop those cause prefix)
+            if (setupHash != savedSetupHash){
+                //fillSetupCollections(); not used
+                createCollectionsFromSetup();
+            }
+        } catch (Exception e) {
+            //table does not exist or other error, createDocument new collections, createDocument into 2 special ones
+            //try in method, if error - throw error, something wrong
+            //fillSetupCollections(); not used
+            createCollectionsFromSetup();
+        }
+
+        //TODO read unfinished work?
+        List<ExecutionRequest> requests = startLocalStorage();
+        return requests;
+    }
 
     /**
      * TODO save state - all from queue from thread (unconfirmed requests)
      * Stops the execution, saves changes which have been done, but not confirmed by server yet and not written into database.
      * @param unconfirmedRequests queue of unconfirmed requests
      */
-    protected abstract void stop(Queue<ExecutionRequest> unconfirmedRequests);
+    void stop(Queue<ExecutionRequest> unconfirmedRequests){
+        //TODO save unfinished work???
+        stopLocalStorage(unconfirmedRequests);
+    }
+
+    protected abstract List<ExecutionRequest> startLocalStorage();
+
+    protected abstract void stopLocalStorage(Queue<ExecutionRequest> unconfirmedRequests);
 
     protected abstract void connectDB() throws LocalStorageException;
 

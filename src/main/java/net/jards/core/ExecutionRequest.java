@@ -8,7 +8,8 @@ public class ExecutionRequest {
         ExecuteLocally,
         Execute,
         Call,
-        Subscribe
+        Subscribe,
+        Unsubscribe
     }
 
 	/**
@@ -18,13 +19,17 @@ public class ExecutionRequest {
 
 	private String methodName;
 
-	private Transaction transaction;
+    private String subscriptionName;
 
-    private Subscription subscriptionObject;
+    private int remoteCallsId;
+
+	private Transaction transaction;
 
 	private ExecutionContext context;
 
 	private Object[] attributes;
+
+    private String seed;
 
 	private TransactionRunnable runnable;
 
@@ -36,21 +41,26 @@ public class ExecutionRequest {
 		this.transaction = transaction;
 		id = UUID.randomUUID().toString();
 		methodName = "";
+        subscriptionName = "";
 	}
 
-    boolean isExecuteLocally() {
+    public boolean isExecuteLocally() {
         return this.requestType == RequestType.ExecuteLocally;
     }
 
-    boolean isExecute() {
+    public boolean isExecute() {
         return this.requestType == RequestType.Execute;
     }
-    boolean isCall() {
+    public boolean isCall() {
         return this.requestType == RequestType.Call;
     }
 
-    boolean isSubscribe(){
+    public boolean isSubscribe(){
         return this.requestType == RequestType.Subscribe;
+    }
+
+    public boolean isUnsubscribe(){
+        return this.requestType == RequestType.Unsubscribe;
     }
 
     public boolean isCompleted() {
@@ -83,8 +93,12 @@ public class ExecutionRequest {
         }
     }
 
-    void setSubscriptionObject(Subscription subscriptionObject) {
-        this.subscriptionObject = subscriptionObject;
+    void setSubscriptionName(String subscriptionName) {
+        this.subscriptionName = subscriptionName;
+    }
+
+    public void setRemoteCallsId(int remoteCallsId) {
+        this.remoteCallsId = remoteCallsId;
     }
 
     void setAttributes(Object[] attributes) {
@@ -107,11 +121,23 @@ public class ExecutionRequest {
         this.requestType = requestType;
     }
 
-    Subscription getSubscriptionObject() {
-        return subscriptionObject;
+    void setSeed(String seed) {
+        this.seed = seed;
     }
 
-    Object[] getAttributes() {
+    String getSeed() {
+        return seed;
+    }
+
+    public String getSubscriptionName() {
+        return subscriptionName;
+    }
+
+    public int getRemoteCallsId() {
+        return remoteCallsId;
+    }
+
+    public Object[] getAttributes() {
 		return attributes;
 	}
 
@@ -119,7 +145,7 @@ public class ExecutionRequest {
 		return id;
 	}
 
-	String getMethodName() {
+	public String getMethodName() {
 		return methodName;
 	}
 
@@ -135,7 +161,7 @@ public class ExecutionRequest {
 		return runnable;
 	}
 
-	RequestType getRequestType() {
+	public RequestType getRequestType() {
         return requestType;
     }
 }

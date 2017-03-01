@@ -14,7 +14,7 @@ public abstract class LocalStorageException extends Exception{
     public static final int QUERY_BUILDING_EXCEPTION = 6;
     public static final int QUERY_EXCEPTION = 7;
     public static final int SETUP_EXCEPTION = 8;
-
+    public static final int INDEX_FIELDS_EXCEPTION = 9;
 
     private int id;
     private String source;

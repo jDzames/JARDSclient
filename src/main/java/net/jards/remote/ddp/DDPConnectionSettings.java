@@ -35,7 +35,7 @@ public class DDPConnectionSettings{
         this.loginType = LoginType.NoLogin;
     }
 
-    /** Consctructor providing server adress, port, LoginType which can be username or email and login and password
+    /** Consctructor providing server adress, port, RemoteLoginType which can be username or email and login and password
      * @param serverAddress adress of server
      * @param serverPort server port
      * @param loginType login type - this constructor accepts username or password

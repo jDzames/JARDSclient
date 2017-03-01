@@ -5,8 +5,10 @@ import net.jards.errors.RemoteStorageError;
 
 import java.util.*;
 
+import static net.jards.core.Connection.STATE.*;
 import static net.jards.core.ExecutionRequest.RequestType.*;
 import static net.jards.core.RemoteDocumentChange.ChangeType.*;
+import static net.jards.core.StorageSetup.RemoteLoginType.DemandLogin;
 
 /**
  * Transparent storage implementation that combines data from local and remote
@@ -18,7 +20,7 @@ public class Storage {
 		@Override
 		public void run() {
 
-			//Set this thread, so program can check and dont allow transactions in another.
+			//Set this thread, so program can check and don't allow transactions in another.
 			setThreadForLocalDBRuns(Thread.currentThread());
 
 			while (running) {
@@ -34,7 +36,7 @@ public class Storage {
                     }
                 }
                 if (!remoteDocumentChanges.isEmpty()){
-                    //TODO write all changes
+                    // write all changes
                     try {
                         localStorage.applyDocumentChanges(remoteDocumentChanges);
                     } catch (LocalStorageException e) {
@@ -46,12 +48,12 @@ public class Storage {
 
 				ExecutionRequest executionRequest;
 				synchronized (pendingRequestsLocal) {
-                    while (pendingRequestsLocal.isEmpty()){
+                    while (pendingRequestsLocal.isEmpty() && running){
                         try {
                             pendingRequestsLocal.wait();
-					    } catch (InterruptedException e) {
-						    e.printStackTrace();
-					    }
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                     executionRequest = pendingRequestsLocal.poll();
 				}
@@ -61,7 +63,6 @@ public class Storage {
 				ExecutionContext context = executionRequest.getContext();
 				Transaction transaction = executionRequest.getTransaction();
 				Object[] arguments = executionRequest.getAttributes();
-                String methodName = executionRequest.getMethodName();
 				TransactionRunnable runnable = executionRequest.getRunnable();
                 if (runnable != null){
                     //Executing runnable
@@ -77,6 +78,7 @@ public class Storage {
 				} else if (executionRequest.isExecute()){
                     //execute locally, send changes to server and apply them on unconfirmed requests
                     DocumentChanges documentChanges = transaction.getLocalChanges();
+                    applyChangesOnOpenedCursors(documentChanges);
                     synchronized (pendingRequestsRemote){
                         pendingRequestsRemote.offer(executionRequest);
                         pendingRequestsRemote.notify();
@@ -85,6 +87,8 @@ public class Storage {
                     executionRequest.ready();
                 } else if (executionRequest.isCall()){
                     //speculative execution (method called on server), local changes to unconfirmed requests
+                    DocumentChanges documentChanges = transaction.getLocalChanges();
+                    applyChangesOnOpenedCursors(documentChanges);
                     synchronized (unconfirmedRequestsLocal){
                         unconfirmedRequestsLocal.offer(executionRequest);
                         unconfirmedRequestsLocal.notify();
@@ -110,26 +114,72 @@ public class Storage {
             while (running){
                 //wait if missing remote connection
                 boolean recoveredFromPause = false;
-                while (paused){
+                while (disconnectedFromRemoteStorage ){
                     recoveredFromPause = true;
-                    synchronized (pendingRequestsRemote){
+                    synchronized (connectionLock){
                         try {
-                            pendingRequestsRemote.wait();
+                            //try to connect
+                            remoteStorage.start(session);
+                            connectionLock.wait();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                     }
                 }
                 //continue - if we want stop work, to check if running is true
-                if (recoveredFromPause)
+                if (recoveredFromPause){
+                    if (!running){
+                        break;
+                    }
+                    //do requests from unconfirmed queue again  ????????????
+                    synchronized (unconfirmedRequestsRemote){
+                        LinkedList<ExecutionRequest> requests = new LinkedList<>();
+                        while (!unconfirmedRequestsRemote.isEmpty() && running) {
+                            ExecutionRequest request = unconfirmedRequestsRemote.poll();
+                            callRequest(request);
+                            requests.add(request);
+                        }
+                        unconfirmedRequestsRemote.addAll(requests);
+                        unconfirmedRequestsRemote.notify();
+                    }
+                }
+
+                //read from one queue, do job, put to another
+                ExecutionRequest request;
+                synchronized (pendingRequestsRemote){
+                    while(running && pendingRequestsRemote.isEmpty()){
+                        //wait for some requests
+                        try {
+                            pendingRequestsRemote.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    request = pendingRequestsRemote.poll();
+                }
+
+                if (request == null){
                     continue;
+                }
 
-                //TODO read from one queue, do job, put to another
+                callRequest(request);
+                synchronized (unconfirmedRequestsRemote){
+                    unconfirmedRequestsRemote.offer(request);
+                    unconfirmedRequestsRemote.notify();
+                }
+            }
+        }
 
-                //remoteStorage.applyChanges(documentChanges, executionRequest);
-
-                //TODO solve connection issues - on connection change change pause (with notify!!!)
-
+        private void callRequest(ExecutionRequest request) {
+            if (request.isCall()){
+                remoteStorage.call(request.getMethodName(), request.getAttributes(), request.getSeed(), request);
+            } else if (request.isSubscribe()){
+                int id = remoteStorage.subscribe(request.getSubscriptionName(), request);
+                request.setRemoteCallsId(id);
+            } else if (request.isUnsubscribe()) {
+                remoteStorage.unsubscribe(request);
+            } else if (request.isExecute()){
+                remoteStorage.applyChanges(request.getTransaction().getLocalChanges(), request);
             }
         }
     }
@@ -137,6 +187,7 @@ public class Storage {
 	private final RemoteStorage remoteStorage;
 	private final LocalStorage localStorage;
     private final StorageSetup storageSetup;
+    private String session = "";
 
 	private final Map<String, TransactionRunnable> speculativeMethods = new HashMap<String, TransactionRunnable>();
 
@@ -154,40 +205,59 @@ public class Storage {
 
     private final JSONPropertyExtractor jsonPropertyExtractor;
 
-	private final Object lock = new Object();
+	private final Object connectionLock = new Object();
 
     private volatile boolean running = false;
-    private volatile boolean paused = true;
+    private volatile boolean disconnectedFromRemoteStorage = true;
+
+    private StorageSetup.RemoteLoginType remoteLoginType;
 
 	public Storage(StorageSetup setup, RemoteStorage remoteStorage, final LocalStorage localStorage) {
 		this.remoteStorage = remoteStorage;
 		this.localStorage = localStorage;
         this.jsonPropertyExtractor = setup.getJsonPropertyExtractor();
         storageSetup = setup;
+        this.remoteLoginType = storageSetup.getRemoteLoginType();
 		remoteStorage.setListener(new RemoteStorageListener() {
 
             public void requestCompleted(ExecutionRequest request) {
-				//removeDocument request from unconfirmed...
-				System.out.println("REQUEST COMPLETED --- "+request.getMethodName());
-                boolean inUnconfirmedRequests = true;
-                //first check if requests have already been run, if it's still in pending queue, remove it
-                synchronized (pendingRequestsLocal){
-                    if (pendingRequestsLocal.contains(request)){
-                        pendingRequestsLocal.remove(request);
-                        inUnconfirmedRequests = false;
+                System.out.println("REQUEST COMPLETED --- "+request.getMethodName());
+
+				if (request.isCall()){
+                    //remove request from pending/unconfirmed...
+
+                    boolean inUnconfirmedRequests = true;
+                    //first check if requests have already been run, if it's still in pending queue, remove it
+                    synchronized (pendingRequestsLocal){
+                        if (pendingRequestsLocal.contains(request)){
+                            pendingRequestsLocal.remove(request);
+                            inUnconfirmedRequests = false;
+                        }
                     }
-                }
-                //if requests isn't in pending queue, it should be in unconfirmed, remove it from there
-                if (inUnconfirmedRequests){
-                    synchronized (unconfirmedRequestsLocal){
-                        if (unconfirmedRequestsLocal.contains(request)){
-                            unconfirmedRequestsLocal.remove(request);
+                    //if requests isn't in pending queue, it should be in unconfirmed, remove it from there
+                    if (inUnconfirmedRequests){
+                        synchronized (unconfirmedRequestsLocal){
+                            if (unconfirmedRequestsLocal.contains(request)){
+                                unconfirmedRequestsLocal.remove(request);
+                            }
+                        }
+                    }
+                    synchronized (unconfirmedRequestsRemote){
+                        if (unconfirmedRequestsRemote.contains(request)){
+                            unconfirmedRequestsRemote.remove(request);
+                        }
+                    }
+                    //if synchronous call, then continue now
+                    request.ready();
+                } else {
+                    //execute, subscribe, unsubscribe
+                    //remove from unconfirmed requests (it is only in remote, local part was done (if there was any) )
+                    synchronized (unconfirmedRequestsRemote) {
+                        if (unconfirmedRequestsRemote.contains(request)) {
+                            unconfirmedRequestsRemote.remove(request);
                         }
                     }
                 }
-                //if synchronous call, then continue now
-                request.ready();
-
 			}
 
 			public void changesReceived(RemoteDocumentChange[] changes) {
@@ -225,10 +295,29 @@ public class Storage {
 
 			public void connectionChanged(Connection connection) {
                 System.out.println("CONNECTION CHANGED: "+connection.getState());
+
+                if (connection.getState().equals(Connected)){
+                    if (remoteLoginType != DemandLogin){
+                        disconnectedFromRemoteStorage = false;
+                        synchronized (connectionLock){
+                            connectionLock.notify();
+                        }
+                    }
+                } else if (connection.getState().equals(LoggedIn)){
+                    disconnectedFromRemoteStorage = false;
+                    synchronized (connectionLock){
+                        connectionLock.notify();
+                    }
+                } else if (connection.getState().equals(Closed) || connection.getState().equals(Disconnected)){
+                    disconnectedFromRemoteStorage = true;
+                    synchronized (connectionLock){
+                        connectionLock.notify();
+                    }
+                }
             }
 
             @Override
-            public void unsubscribed(String subscriptionName, RemoteStorageError error) {
+            public void unsubscribed(String subscriptionName, int subscriptionId, RemoteStorageError error) {
                 // TODO Auto-generated method stub
             }
 
@@ -299,14 +388,29 @@ public class Storage {
         return remoteStorage;
     }
 
-    public Subscription subscribe(String subscriptionName, Object... arguments) {
-        Subscription subscription = null;
+    public ExecutionRequest subscribe(String subscriptionName, Object... arguments) {
         ExecutionRequest executionRequest = new ExecutionRequest(null);
-        executionRequest.setSubscriptionObject(subscription);
+        executionRequest.setRequestType(Subscribe);
+        executionRequest.setSubscriptionName(subscriptionName);
         executionRequest.setAttributes(arguments);
-        remoteStorage.subscribe(subscriptionName, arguments);
-        return subscription;
+        synchronized (pendingRequestsRemote){
+            pendingRequestsRemote.offer(executionRequest);
+            pendingRequestsRemote.notify();
+        }
+        return executionRequest;
 	}
+
+    /**
+     * Unsubscribes from active subscription.
+     * @param executionRequest execution request you want to unsubscribe, the one returned by by subscribe method
+     */
+    public void unsubscribe(ExecutionRequest executionRequest){
+        executionRequest.setRequestType(Unsubscribe);
+        synchronized (pendingRequestsRemote){
+            pendingRequestsRemote.offer(executionRequest);
+            pendingRequestsRemote.notify();
+        }
+    }
 
 	public void registerSpeculativeMethod(String name, TransactionRunnable runnable) {
 		if (name == null ||  runnable == null){
@@ -395,6 +499,7 @@ public class Storage {
 		ExecutionRequest executionRequest = new ExecutionRequest(transaction);
         executionRequest.setRequestType(Call);
         executionRequest.setMethodName(methodName);
+        executionRequest.setSeed(seed);
 
 		if (speculativeMethods.containsKey(methodName)){
 			TransactionRunnable methodRunnable = speculativeMethods.get(methodName);
@@ -404,16 +509,19 @@ public class Storage {
 		executionRequest.setAttributes(arguments);
 		executionRequest.setContext(new DefaultExecutionContext(this));
 
-		remoteStorage.call(methodName, arguments, "", executionRequest);
+		synchronized (pendingRequestsRemote){
+            pendingRequestsRemote.offer(executionRequest);
+            pendingRequestsRemote.notify();
+        }
 
 		if (executionRequest.getRunnable() == null) {
 			synchronized (unconfirmedRequestsLocal) {
-				unconfirmedRequestsLocal.offer(new ExecutionRequest(null));
+				unconfirmedRequestsLocal.offer(executionRequest);
 				unconfirmedRequestsLocal.notify();
 			}
 		} else {
 			synchronized (pendingRequestsLocal) {
-				pendingRequestsLocal.offer(new ExecutionRequest(null));
+				pendingRequestsLocal.offer(executionRequest);
 				pendingRequestsLocal.notify();
 			}
 		}
@@ -424,18 +532,20 @@ public class Storage {
 	/**
 	 * Starts the self-synchronizing storage.
 	 */
-	public void start(String sessionState) {
+	public void start(String sessionState) throws LocalStorageException {
+        session = sessionState;
         running = true;
-        paused = true;
-        //run thread for local work
+        disconnectedFromRemoteStorage = true;
+
+        //start local storage and run thread for local work (this order)
+        localStorage.start();
 		requestsLocalHandlingThread = new RequestsLocalHandlingThread();
         new Thread(requestsLocalHandlingThread).start();
-        //run thread for remote work
+        //TODO read and return queues from database in localStorage start (unconfirmed and pending work)
+
+        //run thread for remote work and start remotes storage
         requestsRemoteHandlingThread = new RequestsRemoteHandlingThread();
         new Thread(requestsRemoteHandlingThread).start();
-        //start storages
-        //TODO read and return queues from database in localStorage start (unconfirmed and pending work)
-        localStorage.start();
 		remoteStorage.start(sessionState);
 	}
 
@@ -445,7 +555,7 @@ public class Storage {
 	public void stop() {
         //wake up threads and stop them
         running = false;
-        paused = false;
+        disconnectedFromRemoteStorage = false;
         synchronized (pendingRequestsLocal){
             pendingRequestsLocal.notify();
         }

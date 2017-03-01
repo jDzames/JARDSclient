@@ -9,15 +9,21 @@ import java.util.Map;
  */
 public class StorageSetup {
 
+    public enum RemoteLoginType {
+        NoLogin,
+        LoginIfPossible,
+        DemandLogin
+    }
+
     private final Map<String, CollectionSetup> localCollections = new HashMap<>();
 
     private String prefix;
-    private String dbAddress;
     private JSONPropertyExtractor jsonPropertyExtractor = null;
-
+    private RemoteLoginType remoteLoginType;
 
     public StorageSetup(){
-
+        jsonPropertyExtractor = new DefaultJSONPropertyExtractor();
+        remoteLoginType = RemoteLoginType.NoLogin;
     }
 
     public void setPrefix(String prefix) {
@@ -57,19 +63,16 @@ public class StorageSetup {
         this.jsonPropertyExtractor = jsonPropertyExtractor;
     }
 
-    public void setDbAddress(String dbAddress) {
-        this.dbAddress = dbAddress;
+    public void setRemoteLoginType(RemoteLoginType remoteLoginType) {
+        this.remoteLoginType = remoteLoginType;
     }
 
     public JSONPropertyExtractor getJsonPropertyExtractor() {
-        if (jsonPropertyExtractor == null ){
-            return new DefaultJSONPropertyExtractor();
-        }
         return jsonPropertyExtractor;
     }
 
-    public String getDbAdress() {
-        return dbAddress;
+    public RemoteLoginType getRemoteLoginType() {
+        return remoteLoginType;
     }
 }
 

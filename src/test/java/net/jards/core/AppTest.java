@@ -44,38 +44,30 @@ public class AppTest
         storageSetup.addCollectionSetup("tasks", false);
         DDPConnectionSettings connectionSettings = new DDPConnectionSettings("localhost", 3000, Username, "testik", "testik");
         RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, connectionSettings);
-        LocalStorage localStorage = null;
+        LocalStorage localStorage;
+        Storage storage = null;
         try {
             localStorage = new SQLiteLocalStorage(storageSetup, "jdbc:sqlite:test.db");
-        } catch (LocalStorageException e) {
-            e.printStackTrace();
-            //System.out.println(e.message());
-        }
+            storage = new Storage(storageSetup, remoteStorage, localStorage);
 
-        assertNotNull(localStorage);
+            storage.start("");
 
-        Storage storage = new Storage(storageSetup, remoteStorage, localStorage);
-        storage.start("");
-
-        try {
             Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        storage.subscribe("tasks");
-
-        /*Object[] methodArgs = new Object[1];
-        methodArgs[0] = "Pridany cez DDP 2";*/
-		//storage.callAsync("tasks.insert", "Pridany cez DDP 4");
-
-        storage.executeAsync(new TransactionRunnableTest());
 
 
+            storage.subscribe("tasks");
 
-        try {
+            /*Object[] methodArgs = new Object[1];
+            methodArgs[0] = "Pridany cez DDP 2";*/
+            //storage.callAsync("tasks.insert", "Pridany cez DDP 4");
+
+            storage.executeAsync(new TransactionRunnableTest());
+
+
+            //wait for work to finish (and see logs in console)
             Thread.sleep(12000);
-        } catch (InterruptedException e) {
+
+        } catch (LocalStorageException | InterruptedException e) {
             e.printStackTrace();
         }
 

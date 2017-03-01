@@ -15,19 +15,9 @@ public class SQLiteLocalStorage extends LocalStorage {
     private final String localDbAddress; //"jdbc:sqlite:test.db"
 
     public SQLiteLocalStorage(StorageSetup storageSetup, String databaseConnection) throws LocalStorageException {
-		super(storageSetup);
+        super(storageSetup);
         localDbAddress = databaseConnection;
-	}
-
-    @Override
-    protected List<ExecutionRequest> start() {
-        //TODO read requests from collection for them. move and do in default LocalStorage or user here?
-        return null;
-    }
-
-    @Override
-    protected void stop(Queue<ExecutionRequest> unconfirmedRequests) {
-        //TODO save requests into collection for them. same question.
+        System.out.println("db adressss "+localDbAddress);
     }
 
     @Override
@@ -35,7 +25,7 @@ public class SQLiteLocalStorage extends LocalStorage {
         connection = null;
         try {
             Class.forName("org.sqlite.JDBC");
-            connection = DriverManager.getConnection("jdbc:sqlite:test.db"); //localDbAddress);
+            connection = DriverManager.getConnection(localDbAddress);  //"jdbc:sqlite:test.db");
         } catch ( Exception e ) {
             System.out.println("local db connection error");
             throw new SqliteException(SqliteException.CONNECTION_EXCEPTION,
@@ -116,12 +106,23 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
-    private StringBuilder createInsertIndexPartSql(String collectionName, String jsonData){
+    private StringBuilder createInsertIndexPartSql(String collectionName, String jsonData) throws SqliteException {
         //set indexes part of createDocument sql string
         CollectionSetup collectionSetup = getCollectionSetup(collectionName);
         List<String> orderedIndexes = collectionSetup.getOrderedIndexes();
+        if (orderedIndexes.size()==0){
+            return new StringBuilder("");
+        }
         JSONPropertyExtractor jsonPropertyExtractor = getJsonPropertyExtractor();
-        Map<String, Object> orderedIndexesValues = jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
+        Map<String, Object> orderedIndexesValues;
+        try{
+             orderedIndexesValues= jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
+        } catch (Exception e){
+            throw new SqliteException(SqliteException.INDEX_FIELDS_EXCEPTION,
+                    "Json property extractor, getting index from json",
+                    "Document has wrong fields probably. "+e.toString(),
+                    e);
+        }
         StringBuilder indexesSqlPart = new StringBuilder();
         for (String index:orderedIndexes) {
             indexesSqlPart.append(", ")
@@ -166,6 +167,9 @@ public class SQLiteLocalStorage extends LocalStorage {
         //set indexes part of updateDocument sql string
         CollectionSetup collectionSetup = getCollectionSetup(collectionName);
         List<String> orderedIndexes = collectionSetup.getOrderedIndexes();
+        if (orderedIndexes.size()==0){
+            return new StringBuilder("");
+        }
         JSONPropertyExtractor jsonPropertyExtractor = getJsonPropertyExtractor();
         Map<String, Object> orderedIndexesValues = jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
         StringBuilder indexesSqlPart = new StringBuilder();
@@ -279,6 +283,18 @@ public class SQLiteLocalStorage extends LocalStorage {
             }
         }
     }
+
+
+    @Override
+    protected List<ExecutionRequest> startLocalStorage() {
+        return null;
+    }
+
+    @Override
+    protected void stopLocalStorage(Queue<ExecutionRequest> unconfirmedRequests) {
+
+    }
+
 
     @Override
     protected List<Map<String, String>> find(Query query) throws SqliteException {

@@ -30,9 +30,12 @@ public class Transaction {
         document = new Document(collection, idGenerator.getId().toString());
         document.setJsonData(jsonData);
 
+        //add to local changes
+        localChanges.addDocument(document);
+
         // whats situation...
         if (local){
-            // only write, no synchronization, changes..
+            // only write, no synchronization, changes to update cursors
             // only to local collection allowed!
             if (!collection.isLocal()){
                 //TODO throw new LocalStorageException();
@@ -40,13 +43,12 @@ public class Transaction {
             LocalStorage localStorage = storage.getLocalStorage();
             localStorage.createDocument(collection.getName(), document);
         } else if (speculation){
-            // only speculation, just put document into changes
-            localChanges.addDocument(document);
+            // only speculation, just put document into changes (done)
+
         } else {
             // execute - write to db, and send changes to server (put document into changes)
             LocalStorage localStorage = storage.getLocalStorage();
             localStorage.createDocument(collection.getName(), document);
-            localChanges.addDocument(document);
         }
 
 		return document;
@@ -55,9 +57,12 @@ public class Transaction {
 	Document update(Collection collection, Document document) throws LocalStorageException {
         // updating document
 
+        // add to updated documents
+        localChanges.updateDocument(document);
+
         // whats situation...
         if (local){
-            // only write, no synchronization, changes..
+            // only write, no synchronization, changes to update cursors
             // only to local collection allowed!
             if (!collection.isLocal()){
                 //TODO throw new LocalStorageException();
@@ -65,13 +70,11 @@ public class Transaction {
             LocalStorage localStorage = storage.getLocalStorage();
             localStorage.updateDocument(collection.getName(), document);
         } else if (speculation){
-            // only speculation, just put document into changes
-            localChanges.updateDocument(document);
+            // only speculation, just put document into changes (done)
         } else {
             // execute - write to db, and send changes to server
             LocalStorage localStorage = storage.getLocalStorage();
             localStorage.updateDocument(collection.getName(), document);
-            localChanges.updateDocument(document);
         }
 
         return document;
@@ -80,9 +83,12 @@ public class Transaction {
 	boolean remove(Collection collection, Document document) throws LocalStorageException {
         // removing document
 
+        //add to removed documents
+        localChanges.removeDocument(document);
+
         // whats situation...
         if (local){
-            // only write, no synchronization, changes..
+            // only write, no synchronization, changes only to update cursors
             // only to local collection allowed!
             if (!collection.isLocal()){
                 //TODO throw new LocalStorageException();
@@ -90,13 +96,11 @@ public class Transaction {
             LocalStorage localStorage = storage.getLocalStorage();
             localStorage.removeDocument(collection.getName(), document);
         } else if (speculation){
-            // only speculation, just put document into changes
-            localChanges.removeDocument(document);
+            // only speculation, just put document into changes (done)
         } else {
-            // execute - write to db, and send changes to server (document into changes)
+            // execute - write to db, and send changes to server (document in changes)
             LocalStorage localStorage = storage.getLocalStorage();
             localStorage.removeDocument(collection.getName(), document);
-            localChanges.removeDocument(document);
         }
 
         return true;

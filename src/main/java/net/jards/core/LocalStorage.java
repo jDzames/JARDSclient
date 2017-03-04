@@ -12,6 +12,10 @@ import java.util.Queue;
 
 public abstract class LocalStorage {
 
+	public interface PredicateFilter {
+		boolean isAcceptable(Predicate predicate);
+	}
+
 	private final String prefix;
 	private final Map<String, CollectionSetup> collections;
 	private final CollectionSetup setupHashCollection;
@@ -187,23 +191,23 @@ public abstract class LocalStorage {
 	 * 
 	 * @param predicate
 	 *            the predicate.
-	 * @param localStorage
-	 *            the local storage.
+	 * @param filter
+	 *            the predicate filter.
 	 * @return
 	 */
-	protected static Predicate createFilteringPredicate(Predicate predicate, LocalStorage localStorage) {
+	protected static Predicate createFilteringPredicate(Predicate predicate, PredicateFilter filter) {
 		if (predicate == null) {
 			return null;
 		}
 
-		if (!localStorage.hasNativeSupportForPredicate(predicate)) {
+		if (!filter.isAcceptable(predicate)) {
 			return null;
 		}
 
 		if (predicate instanceof And) {
 			List<Predicate> predicates = new ArrayList<>();
 			for (Predicate p : ((And) predicate).getSubPredicates()) {
-				Predicate filteredPredicate = createFilteringPredicate(p, localStorage);
+				Predicate filteredPredicate = createFilteringPredicate(p, filter);
 				if (filteredPredicate != null) {
 					predicates.add(filteredPredicate);
 				}
@@ -223,7 +227,7 @@ public abstract class LocalStorage {
 		if (predicate instanceof Or) {
 			List<Predicate> predicates = new ArrayList<>();
 			for (Predicate p : ((Or) predicate).getSubPredicates()) {
-				Predicate filteredPredicate = createFilteringPredicate(p, localStorage);
+				Predicate filteredPredicate = createFilteringPredicate(p, filter);
 				if (filteredPredicate == null) {
 					return null;
 				}

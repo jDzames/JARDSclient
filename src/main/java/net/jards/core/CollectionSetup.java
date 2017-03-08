@@ -14,7 +14,7 @@ public class CollectionSetup {
     private final String name;
     private final boolean local;
 
-    //Map and list of indexes. Key is index name (column name) and value is type of index. def, int, string. List is to have order for
+    //Map and list of indexes. Key is index name (property path) and value is type of index. def, int, string. List is to have order for
     private final Map<String, String> indexes = new HashMap<>();
     private final List<String> indexesOrder = new ArrayList<>();
 
@@ -41,6 +41,10 @@ public class CollectionSetup {
     public void addStringIndex(String name){
         this.indexes.put(name, "text");
         this.indexesOrder.add(name);
+    }
+
+    public boolean hasIndex(String name){
+        return indexes.containsKey(name);
     }
 
     protected void setPrefix(String prefix) {

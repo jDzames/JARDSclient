@@ -1,5 +1,6 @@
 package net.jards.local.sqlite;
 
+import net.jards.core.Collection;
 import net.jards.core.*;
 import net.jards.errors.LocalStorageException;
 
@@ -9,6 +10,43 @@ import java.sql.ResultSet;
 import java.util.*;
 
 public class SQLiteLocalStorage extends LocalStorage {
+
+
+    public class SQLitePredicateFilter implements LocalStorage.PredicateFilter {
+
+        @Override
+        public boolean isAcceptable(Collection collection, Predicate predicate) {
+            if (predicate == null || collection == null){
+                return false;
+            }
+
+            if (predicate instanceof Predicate.And){
+                return ((Predicate.And) predicate).getSubPredicates().size() >0;
+            }
+            if (predicate instanceof Predicate.Or){
+                return ((Predicate.Or) predicate).getSubPredicates().size() >0;
+            }
+
+            CollectionSetup collectionSetup = getCollectionSetup(collection.getName());
+            if (collectionSetup == null){
+                return false;
+            }
+
+            if (predicate instanceof Predicate.Equals || predicate instanceof Predicate.EqualProperties
+                    || predicate instanceof Predicate.Compare || predicate instanceof Predicate.CompareProperties){
+                for (String property : predicate.getProperties() ) {
+                    if (!collectionSetup.hasIndex(property)){
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+
 
 
     private Connection connection;
@@ -301,13 +339,13 @@ public class SQLiteLocalStorage extends LocalStorage {
         connectDB();
         String sql;
         if (query.isRawQuery()){
-            sql = query.getRawSql();
+            sql = query.getRawQuery();
         } else {
             sql = new StringBuilder()
                     .append("select * from ")
                     .append(query.getCollection())
                     .append(" ")
-                    .append(query.getWhere())
+                    //.append(query.getPredicate())
                     .append(";")
                     .toString();
         }

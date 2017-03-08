@@ -5,18 +5,26 @@ import net.jards.errors.QueryException;
 
 class QueryBuilder {
 
-    private String sql;
+    private String rawQuery;
     private String collection;
-    private String where;
+    private Predicate predicate;
 
-    public QueryBuilder rawQuery(String sql){
-        this.sql = sql;
+    protected QueryBuilder(){}
+
+    public QueryBuilder rawQuery(String rawQuery){
+        this.rawQuery = rawQuery;
         return this;
     }
 
-    public QueryBuilder rawQueryArgs(String... args){
+    public QueryBuilder rawQueryArgs(String... args) throws QueryException {
+        if (rawQuery == null){
+            throw new QueryException(LocalStorageException.QUERY_BUILDING_EXCEPTION,
+                    "QueryBuilder, rawQuery",
+                    "Raw query string must be specified before using raw query args.",
+                    null);
+        }
         for (int i = 0; i < args.length; i++) {
-            this.sql.replaceFirst("\\?", args[i]);
+            this.rawQuery = this.rawQuery.replaceFirst("\\?", args[i]);
         }
         return this;
     }
@@ -26,26 +34,20 @@ class QueryBuilder {
         return this;
     }
 
-    public QueryBuilder where(String where){
-        this.where = where;
+    public QueryBuilder predicate(Predicate predicate){
+        this.predicate = predicate;
         return this;
     }
 
-    public QueryBuilder whereArgs(String... args){
-        for (int i = 0; i < args.length; i++) {
-            this.where.replaceFirst("\\?", args[i]);
-        }
-        return this;
-    }
 
     //... select, having, ..?
 
     public Query build() throws QueryException {
-        if (!"".equals(sql)){
-            return new Query(sql);
+        if (rawQuery != null && !"".equals(rawQuery)){
+            return new Query(rawQuery);
         }
-        if (!"".equals(collection)){
-            return new Query(collection, where);
+        if (collection!= null && !"".equals(collection)){
+            return new Query(collection, predicate);
         }
         throw  new QueryException(LocalStorageException.QUERY_BUILDING_EXCEPTION,
                 "Query, build method",

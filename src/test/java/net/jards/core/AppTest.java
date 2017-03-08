@@ -61,10 +61,16 @@ public class AppTest
             methodArgs[0] = "Pridany cez DDP 2";*/
             //storage.callAsync("tasks.insert", "Pridany cez DDP 4");
 
-            storage.executeAsync(new TransactionRunnableTest());
+
 
 
             //wait for work to finish (and see logs in console)
+            Thread.sleep(3000);
+            //Thread.sleep(12000);
+
+            storage.executeAsync(new TransactionRunnableTest());
+
+            //Thread.sleep(300000);
             Thread.sleep(12000);
 
         } catch (LocalStorageException | InterruptedException e) {

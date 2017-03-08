@@ -54,8 +54,8 @@ public class Collection {
 	}
 
 	private void checkTransaction(Transaction transaction) {
-		// overime, ci transakcia je ok - napriklad ci uz nebola uzatvorena
-		// alebo sme vo vlakne, v ktorom bola vytvorena transakcia
+		// check if transaction is ok - i.e. it has not been closed
+		// also if we are in right thread
 		if (transaction == null){
 			//TODO error?
 			return;
@@ -68,11 +68,16 @@ public class Collection {
 
 	}
 
-	public ResultSet find(Query query) {
+	public ResultSet find(Query query, Transaction transaction) {
 		// operacie na ziskanie udajov sa vykonavaju asynchronne - nie su teda
 		// viazane na transakciu.
 		return null;
 	}
+
+	public Document findOne(Query query, Transaction transaction){
+
+        return null;
+    }
 
 	Storage getStorage() {
 		return storage;

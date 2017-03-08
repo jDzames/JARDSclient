@@ -7,18 +7,18 @@ public class Query {
 
     private boolean isRawQuery;
     private String collection;
-    private String where;
-    private String rawSql;
+    private Predicate predicate;
+    private String rawQuery;
 
-    Query(String collection, String where){
+    protected Query(String collection, Predicate predicate){
         isRawQuery = false;
         this.collection = collection;
-        this.where = where;
+        this.predicate = predicate;
     }
 
-    Query(String rawSql){
+    protected Query(String rawQuery){
         isRawQuery = true;
-        this.rawSql = rawSql;
+        this.rawQuery = rawQuery;
     }
 
     /**
@@ -33,12 +33,12 @@ public class Query {
         return collection;
     }
 
-    public String getWhere() {
-        return where;
+    public Predicate getPredicate() {
+        return predicate;
     }
 
-    public String getRawSql() {
-        return rawSql;
+    public String getRawQuery() {
+        return rawQuery;
     }
 
     public boolean isRawQuery() {

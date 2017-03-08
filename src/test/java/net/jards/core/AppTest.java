@@ -55,7 +55,7 @@ public class AppTest
             Thread.sleep(3000);
 
 
-            storage.subscribe("tasks");
+            //storage.subscribe("tasks");
 
             /*Object[] methodArgs = new Object[1];
             methodArgs[0] = "Pridany cez DDP 2";*/
@@ -68,7 +68,7 @@ public class AppTest
             Thread.sleep(3000);
             //Thread.sleep(12000);
 
-            storage.executeAsync(new TransactionRunnableTest());
+            storage.executeLocallyAsync(new TransactionRunnableTest());
 
             //Thread.sleep(300000);
             Thread.sleep(12000);

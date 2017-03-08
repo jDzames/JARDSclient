@@ -68,13 +68,17 @@ public class Collection {
 
 	}
 
-	public ResultSet find(Query query, Transaction transaction) {
-		// operacie na ziskanie udajov sa vykonavaju asynchronne - nie su teda
-		// viazane na transakciu.
+	public ResultSet find(Predicate predicate) {
+		//without transaction, needs its own connection,
 		return null;
 	}
 
-	public Document findOne(Query query, Transaction transaction){
+    public ResultSet find(Predicate predicate, ResultOptions resultOptions) {
+        //without transaction, needs its own connection,
+        return null;
+    }
+
+	public Document findOne(Predicate predicate){
 
         return null;
     }

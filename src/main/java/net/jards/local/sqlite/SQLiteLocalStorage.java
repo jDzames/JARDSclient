@@ -55,7 +55,6 @@ public class SQLiteLocalStorage extends LocalStorage {
     public SQLiteLocalStorage(StorageSetup storageSetup, String databaseConnection) throws LocalStorageException {
         super(storageSetup);
         localDbAddress = databaseConnection;
-        System.out.println("db adressss "+localDbAddress);
     }
 
     @Override
@@ -125,15 +124,10 @@ public class SQLiteLocalStorage extends LocalStorage {
     @Override
     protected void removeCollection(CollectionSetup collection) throws SqliteException {
         connectDB();
-        String sql = new StringBuilder()
-                .append("drop table if exists ")
-                .append(collection.getFullName())
-                .append(";")
-                .toString();
         Statement statement = null;
         try {
             statement = connection.createStatement();
-            statement.execute(sql);
+            statement.execute("drop table if exists "+collection.getFullName()+";");
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.REMOVING_COLLECTION_EXCEPTION,
                     "Sqlite local database, collection "+collection.getName(),
@@ -144,53 +138,69 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
-    private StringBuilder createInsertIndexPartSql(String collectionName, String jsonData) throws SqliteException {
+    private List<String> getIndexesValues(String collectionName, String jsonData) throws SqliteException {
         //set indexes part of createDocument sql string
         CollectionSetup collectionSetup = getCollectionSetup(collectionName);
         List<String> orderedIndexes = collectionSetup.getOrderedIndexes();
+        List<String> orderedIndexesValues = new ArrayList<>();
         if (orderedIndexes.size()==0){
-            return new StringBuilder("");
+            return orderedIndexesValues;
         }
         JSONPropertyExtractor jsonPropertyExtractor = getJsonPropertyExtractor();
-        Map<String, Object> orderedIndexesValues;
+        Map<String, Object> orderedIndexesValuesMap;
         try{
-             orderedIndexesValues= jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
+             orderedIndexesValuesMap = jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
         } catch (Exception e){
             throw new SqliteException(SqliteException.INDEX_FIELDS_EXCEPTION,
                     "Json property extractor, getting index from json",
                     "Document has wrong fields probably. "+e.toString(),
                     e);
         }
-        StringBuilder indexesSqlPart = new StringBuilder();
+
         for (String index:orderedIndexes) {
-            indexesSqlPart.append(", ")
-                    .append("'").append((String)orderedIndexesValues.get(index)).append("'");
+            orderedIndexesValues.add((String)orderedIndexesValuesMap.get(index));
         }
-        return indexesSqlPart;
+        return orderedIndexesValues;
     }
 
     @Override
     protected String createDocument(String collectionName, Document document) throws SqliteException {
         //connect
         connectDB();
-        //createDocument sql string
-        String sql = new StringBuilder()
+        //get collection setup
+        CollectionSetup collectionSetup = getCollectionSetup(collectionName);
+        if (collectionSetup == null){
+            throw new SqliteException(SqliteException.INSERT_EXCEPTION,
+                    "Sqlite local database, createDocument.",
+                    "Wrong collection. ",
+                    null);
+        }
+        //create Document sql string
+        StringBuilder sql = new StringBuilder()
                 .append("insert into ")
                 .append(getPrefix())
                 .append(collectionName)
-                .append(" values( '")
-                .append(document.getId()).append("', '")
-                .append(document.getCollection()).append("', '")
-                .append(document.getJsonData()).append("'")
-                .append(createInsertIndexPartSql(collectionName, document.getJsonData()))
-                .append(");")
-                .toString();
+                .append(" values(? , ? , ? ");
+        //indexes part
+        for (int i = 0; i<collectionSetup.getOrderedIndexes().size(); i++){
+            sql.append(", ?");
+        }
+        sql.append(");");
+        //indexes values
+        List<String> indexValues = getIndexesValues(collectionName, document.getJsonData());
         //perform createDocument
-        Statement statement = null;
+        PreparedStatement statement = null;
         try {
-            statement = connection.createStatement();
-            statement.execute(sql);
+            statement = connection.prepareStatement(sql.toString());
+            statement.setString(1, document.getId());
+            statement.setString(2, collectionName);
+            statement.setString(3, document.getJsonData());
+            for (int i =0; i< indexValues.size(); i++){
+                statement.setString(4+i, indexValues.get(i));
+            }
+            statement.executeUpdate();
         } catch (SQLException e) {
+            e.printStackTrace();
             throw new SqliteException(SqliteException.INSERT_EXCEPTION,
                     "Sqlite local database, createDocument.",
                     "Problem with createDocument. \n "+e.toString(),
@@ -201,39 +211,43 @@ public class SQLiteLocalStorage extends LocalStorage {
         return document.getId();
     }
 
-    private StringBuilder createUpdateIndexPartSql(String collectionName, String jsonData){
-        //set indexes part of updateDocument sql string
-        CollectionSetup collectionSetup = getCollectionSetup(collectionName);
-        List<String> orderedIndexes = collectionSetup.getOrderedIndexes();
-        if (orderedIndexes.size()==0){
-            return new StringBuilder("");
-        }
-        JSONPropertyExtractor jsonPropertyExtractor = getJsonPropertyExtractor();
-        Map<String, Object> orderedIndexesValues = jsonPropertyExtractor.extractPropertyValues(jsonData, orderedIndexes);
-        StringBuilder indexesSqlPart = new StringBuilder();
-        for (String index:orderedIndexes) {
-            indexesSqlPart.append(", ")
-                    .append(index).append("=")
-                    .append("'").append((String)orderedIndexesValues.get(index)).append("'");
-        }
-        return indexesSqlPart;
-    }
-
     @Override
     protected String updateDocument(String collectionName, Document document) throws SqliteException {
         connectDB();
-        String sql = new StringBuilder()
+        //get collection setup
+        CollectionSetup collectionSetup = getCollectionSetup(collectionName);
+        if (collectionSetup == null){
+            throw new SqliteException(SqliteException.INSERT_EXCEPTION,
+                    "Sqlite local database, updateDocument.",
+                    "Wrong collection. ",
+                    null);
+        }
+        //sql
+        StringBuilder sql = new StringBuilder()
                 .append("update ")
                 .append(getPrefix())
                 .append(collectionName)
-                .append(" set jsondata='").append(document.getJsonData()).append("' ")
-                .append(createUpdateIndexPartSql(collectionName, document.getJsonData()))
-                .append(" where id='").append(document.getId()).append("';")
-                .toString();
-        Statement statement = null;
+                .append(" set jsondata= ? ");
+        //indexes part
+        for (String index:collectionSetup.getOrderedIndexes()){
+            sql.append(", ").append(index).append("= ? ");
+        }
+        sql.append(" where id= ? ;");
+        //index values
+        List<String> indexValues = getIndexesValues(collectionName, document.getJsonData());
+        //statement
+        PreparedStatement statement = null;
+        int idx = 1;
         try {
-            statement = connection.createStatement();
-            statement.execute(sql);
+            statement = connection.prepareStatement(sql.toString());
+            statement.setString(idx, document.getJsonData());
+            idx++;
+            for (String indexValue:indexValues){
+                statement.setString(idx, indexValue);
+                idx++;
+            }
+            statement.setString(idx, document.getId());
+            statement.executeUpdate();
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.UPDATE_EXCEPTION,
                     "Sqlite local database, updateDocument.",
@@ -252,14 +266,13 @@ public class SQLiteLocalStorage extends LocalStorage {
                 .append("delete from ")
                 .append(getPrefix())
                 .append(collectionName)
-                .append(" where id='")
-                .append(document.getId())
-                .append("';")
+                .append(" where id= ? ;")
                 .toString();
-        Statement statement = null;
+        PreparedStatement statement = null;
         try {
-            statement = connection.createStatement();
-            statement.execute(sql);
+            statement = connection.prepareStatement(sql);
+            statement.setString(1, document.getId());
+            statement.executeUpdate();
         } catch (SQLException e) {
             throw new SqliteException(SqliteException.UPDATE_EXCEPTION,
                     "Sqlite local database, delete.",

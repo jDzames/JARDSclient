@@ -10,8 +10,8 @@ public class TransactionRunnableTest implements  TransactionRunnable {
     @Override
     public void run(ExecutionContext context, Transaction transaction, Object... arguments) {
         Document d = new Document();
-        d.setJsonData("pridany cez transaction runnable");//"{test1:Added through StoragesTogether}");
-        Collection collection = context.getCollection("tasks");
+        d.setJsonData("{example:for local}");//"{test1:Added through StoragesTogether}");
+        Collection collection = context.getCollection("LocalTest");
         try {
             d = collection.create(d, transaction);
             //d.setJsonData("{example:changedData}");

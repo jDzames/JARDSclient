@@ -166,7 +166,11 @@ public abstract class Predicate {
 
 			return value.equals(document.getPropertyValue(property));
 		}
-	}
+
+        public Object getValue() {
+            return value;
+        }
+    }
 
     public enum Operator{
         SameAs,
@@ -246,9 +250,15 @@ public abstract class Predicate {
                     return ((Number)value).doubleValue() >= ((Number)document.getPropertyValue(property)).doubleValue();
                 } else return false;
             }
-
             return false;
+        }
 
+        public Object getValue() {
+            return value;
+        }
+
+        public Operator getOperator() {
+            return operator;
         }
     }
 
@@ -340,9 +350,11 @@ public abstract class Predicate {
                     return ((Number)property2Object).doubleValue() >= ((Number)document.getPropertyValue(property)).doubleValue();
                 } else return false;
             }
-
             return false;
+        }
 
+        public Operator getOperator() {
+            return operator;
         }
     }
 

@@ -2,6 +2,10 @@ package net.jards.core;
 
 import net.jards.errors.LocalStorageException;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 public class Collection {
 
 	/**
@@ -73,14 +77,25 @@ public class Collection {
 		return null;
 	}
 
-    public ResultSet find(Predicate predicate, ResultOptions resultOptions) {
-        //without transaction, needs its own connection,
-        return null;
+    public ResultSet find(Predicate predicate, ResultOptions resultOptions) throws LocalStorageException {
+        //execute query
+        LocalStorage localStorage = storage.getLocalStorage();
+        List<Map<String, String>> result = localStorage.find(getName(), predicate, resultOptions);
+        //create result set
+        if (result == null){
+            return null;
+        }
+        List<Document> originalQueryDocuments = new ArrayList<>();
+        for (Map<String, String> docMap:result) {
+            originalQueryDocuments.add(new Document(docMap, storage));
+        }
+        ResultSet resultSet = new ResultSet(originalQueryDocuments);
+        return resultSet;
     }
 
-	public Document findOne(Predicate predicate){
-
-        return null;
+	public Document findOne(Predicate predicate, ResultOptions resultOptions) throws LocalStorageException {
+        LocalStorage localStorage = storage.getLocalStorage();
+        return new Document(localStorage.findOne(getName(), predicate, resultOptions), storage);
     }
 
 	Storage getStorage() {

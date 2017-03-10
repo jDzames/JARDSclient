@@ -1,6 +1,5 @@
 package net.jards.local.sqlite;
 
-import net.jards.core.Collection;
 import net.jards.core.*;
 import net.jards.errors.LocalStorageException;
 
@@ -10,44 +9,6 @@ import java.sql.ResultSet;
 import java.util.*;
 
 public class SQLiteLocalStorage extends LocalStorage {
-
-
-    public class SQLitePredicateFilter implements LocalStorage.PredicateFilter {
-
-        @Override
-        public boolean isAcceptable(Collection collection, Predicate predicate) {
-            if (predicate == null || collection == null){
-                return false;
-            }
-
-            if (predicate instanceof Predicate.And){
-                return ((Predicate.And) predicate).getSubPredicates().size() >0;
-            }
-            if (predicate instanceof Predicate.Or){
-                return ((Predicate.Or) predicate).getSubPredicates().size() >0;
-            }
-
-            CollectionSetup collectionSetup = getCollectionSetup(collection.getName());
-            if (collectionSetup == null){
-                return false;
-            }
-
-            if (predicate instanceof Predicate.Equals || predicate instanceof Predicate.EqualProperties
-                    || predicate instanceof Predicate.Compare || predicate instanceof Predicate.CompareProperties){
-                for (String property : predicate.getProperties() ) {
-                    if (!collectionSetup.hasIndex(property)){
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            return false;
-        }
-    }
-
-
-
 
     private Connection connection;
     private final String localDbAddress; //"jdbc:sqlite:test.db"
@@ -348,27 +309,26 @@ public class SQLiteLocalStorage extends LocalStorage {
 
 
     @Override
-    protected List<Map<String, String>> find(Query query) throws SqliteException {
+    protected List<Map<String, String>> find(String collectionName, Predicate p, ResultOptions options) throws SqliteException {
         connectDB();
-        String sql;
-        if (query.isRawQuery()){
-            sql = query.getRawQuery();
-        } else {
-            sql = new StringBuilder()
-                    .append("select * from ")
-                    .append(query.getCollection())
-                    .append(" ")
-                    //.append(query.getPredicate())
-                    .append(";")
-                    .toString();
-        }
-        Statement statement = null;
-        ResultSet rs = null;
+        PreparedStatement preparedStatement = null;
         try {
-            statement = connection.createStatement();
-            rs = statement.executeQuery(sql);
+            CollectionSetup collectionSetup = getCollectionSetup(collectionName);
+            if (collectionSetup == null){
+                throw new SqliteException(SqliteException.QUERY_EXCEPTION,
+                        "Sqlite local database, preparing query.",
+                        "Wrong collection. ", null);
+            }
+            //prepare statement and fill it with parameters
+            SQLiteQueryGenerator sqLiteQueryGenerator = new SQLiteQueryGenerator(collectionSetup);
+            preparedStatement = sqLiteQueryGenerator.generateFilterStatement(connection, p, options);
+            //execute query
+            ResultSet rs;
+            rs = preparedStatement.executeQuery();
             List<Map<String, String>> foundDocuments = new LinkedList<>();
-            while(rs.next())
+            //fill List and return it
+            int  documentCounter = options.getLimit()>0 ? options.getLimit() : Integer.MAX_VALUE;
+            while(rs.next() && documentCounter>0)
             {
                 // add one row (document)
                 Map<String, String> documentMap = new HashMap<>();
@@ -376,6 +336,7 @@ public class SQLiteLocalStorage extends LocalStorage {
                 documentMap.put("collection", rs.getString("collection"));
                 documentMap.put("jsondata", rs.getString("jsondata"));
                 foundDocuments.add(documentMap);
+                documentCounter--;
             }
             // return data to storage
             return foundDocuments;
@@ -385,23 +346,14 @@ public class SQLiteLocalStorage extends LocalStorage {
                     "Problem with executing query. \n "+e.toString(),
                     e);
         } finally {
-            try {
-                if (statement != null) {
-                    statement.close();
-                }
-                if (rs != null) {
-                    rs.close();
-                }
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            close(preparedStatement);
         }
     }
 
     @Override
-    protected Map<String, String> findOne(Query query) throws SqliteException {
-        return null;
+    protected Map<String, String> findOne(String collectionName, Predicate p, ResultOptions options) throws SqliteException {
+        options.setLimit(1);
+        return find(collectionName, p, options).get(0);
     }
 
 }

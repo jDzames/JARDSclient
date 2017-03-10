@@ -14,6 +14,10 @@ public class DocumentList extends AbstractList<Document> {
 
     private List<Document> documents = new ArrayList<>();
 
+    DocumentList(List<Document> documents){
+        this.documents = documents;
+    }
+
     @Override
     public boolean add(Document document) {
         return documents.add(document);

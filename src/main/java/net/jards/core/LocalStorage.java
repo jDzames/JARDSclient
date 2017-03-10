@@ -13,7 +13,7 @@ import java.util.Queue;
 public abstract class LocalStorage {
 
 	public interface PredicateFilter {
-		boolean isAcceptable(Collection collection, Predicate predicate);
+		boolean isAcceptable(Predicate predicate);
 	}
 
 	private final String prefix;
@@ -105,8 +105,8 @@ public abstract class LocalStorage {
 	 */
 	List<ExecutionRequest> start() throws LocalStorageException {
 		try {
-			Map<String, String> savedSetupHashDocument = findOne(
-					null/* query for setup_hash_collection to findOne any */);
+            /* query for setup_hash_collection to findOne any */
+			Map<String, String> savedSetupHashDocument = findOne(setupHashCollection.getName(), null, null);
 			int savedSetupHash = Integer.parseInt(savedSetupHashDocument.get("jsondata"));
 			// compare hashes, if same, done, if different - createDocument new
 			// collections (drop those cause prefix)
@@ -173,9 +173,9 @@ public abstract class LocalStorage {
 	protected abstract void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges)
 			throws LocalStorageException;
 
-	protected abstract List<Map<String, String>> find(Query query) throws LocalStorageException;
+	protected abstract List<Map<String, String>> find(String collectionName, Predicate p, ResultOptions options) throws LocalStorageException;
 
-	protected abstract Map<String, String> findOne(Query query) throws LocalStorageException;
+	protected abstract Map<String, String> findOne(String collectionName, Predicate p, ResultOptions options) throws LocalStorageException;
 
 	protected String getPrefix() {
 		return prefix;
@@ -200,7 +200,7 @@ public abstract class LocalStorage {
 			return null;
 		}
 
-		if (!filter.isAcceptable(collection, predicate)) {
+		if (!filter.isAcceptable(predicate)) {
 			return null;
 		}
 

@@ -37,7 +37,6 @@ public class AppTest
 
     public void testApp()
     {
-
         StorageSetup storageSetup = new StorageSetup();
         storageSetup.setPrefix("tests_");
         storageSetup.addCollectionSetup("LocalTest", true, "example");

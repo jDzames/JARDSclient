@@ -42,7 +42,7 @@ public class Storage {
                     } catch (LocalStorageException e) {
                         System.out.println("ERROR: " + e.toString());
                     }
-                    applyListOfChangesOnOpenedCursors(remoteDocumentChanges);
+                    applyListOfChangesOnOpenedResultSets(remoteDocumentChanges);
                 }
 
 
@@ -73,22 +73,22 @@ public class Storage {
 				if (executionRequest.isExecuteLocally()){
                     //only local execution, just execute (that was done already)
                     DocumentChanges documentChanges = transaction.getLocalChanges();
-                    applyChangesOnOpenedCursors(documentChanges);
+                    applyChangesOnOpenedResultSets(documentChanges);
                     executionRequest.ready();
 				} else if (executionRequest.isExecute()){
                     //execute locally, send changes to server and apply them on unconfirmed requests
                     DocumentChanges documentChanges = transaction.getLocalChanges();
-                    applyChangesOnOpenedCursors(documentChanges);
+                    applyChangesOnOpenedResultSets(documentChanges);
                     synchronized (pendingRequestsRemote){
                         pendingRequestsRemote.offer(executionRequest);
                         pendingRequestsRemote.notify();
                     }
-                    applyChangesOnOpenedCursors(documentChanges);
+                    applyChangesOnOpenedResultSets(documentChanges);
                     executionRequest.ready();
                 } else if (executionRequest.isCall()){
                     //speculative execution (method called on server), local changes to unconfirmed requests
                     DocumentChanges documentChanges = transaction.getLocalChanges();
-                    applyChangesOnOpenedCursors(documentChanges);
+                    addOverlayToOpenedResultSets(documentChanges);
                     synchronized (unconfirmedRequestsLocal){
                         unconfirmedRequestsLocal.offer(executionRequest);
                         unconfirmedRequestsLocal.notify();
@@ -96,16 +96,6 @@ public class Storage {
                 }
 			}
 		}
-
-        private void applyListOfChangesOnOpenedCursors(List<DocumentChanges> documentChanges) {
-            //TODO upgrades documents in opened cursors.. how? compare, id,..?
-            // execute does it twice (local execution, changes from server (meteor))
-        }
-
-        private void applyChangesOnOpenedCursors(DocumentChanges documentChanges) {
-            //TODO upgrades documents in opened cursors.. how? compare, id,..?
-            // execute does it twice (local execution, changes from server (meteor))
-        }
     }
 
     private class RequestsRemoteHandlingThread extends Thread {
@@ -198,6 +188,8 @@ public class Storage {
     private final Queue<ExecutionRequest> pendingRequestsRemote = new LinkedList<ExecutionRequest>();
     private final Queue<ExecutionRequest> unconfirmedRequestsRemote = new LinkedList<ExecutionRequest>();
 
+    private final Queue<ResultSet> openedResultSets = new LinkedList<ResultSet>();
+
 	private RequestsLocalHandlingThread requestsLocalHandlingThread;
 	private Thread threadForLocalDBRuns;
 
@@ -241,6 +233,8 @@ public class Storage {
                                 unconfirmedRequestsLocal.remove(request);
                             }
                         }
+                        //remove overlay from opened result sets now
+                        removeOverlayOfOpenedResultSets(request.getTransaction().getLocalChanges());
                     }
                     synchronized (unconfirmedRequestsRemote){
                         if (unconfirmedRequestsRemote.contains(request)){
@@ -333,6 +327,34 @@ public class Storage {
 
 		//TODO session state
 		remoteStorage.start("");
+    }
+
+    private void applyListOfChangesOnOpenedResultSets(List<DocumentChanges> documentChanges) {
+        openedResultSets.removeIf(ResultSet::isClosed);
+        for (ResultSet resultSet:openedResultSets){
+            documentChanges.forEach(resultSet::applyChanges);
+        }
+    }
+
+    private void applyChangesOnOpenedResultSets(DocumentChanges documentChanges) {
+        openedResultSets.removeIf(ResultSet::isClosed);
+        for (ResultSet resultSet:openedResultSets){
+            resultSet.applyChanges(documentChanges);
+        }
+    }
+
+    private void addOverlayToOpenedResultSets(DocumentChanges documentChanges){
+        openedResultSets.removeIf(ResultSet::isClosed);
+        for (ResultSet resultSet:openedResultSets){
+            resultSet.addOverlayWithChanges(documentChanges);
+        }
+    }
+
+    private void removeOverlayOfOpenedResultSets(DocumentChanges documentChanges){
+        openedResultSets.removeIf(ResultSet::isClosed);
+        for (ResultSet resultSet:openedResultSets){
+            resultSet.removeOverlayWithChanges(documentChanges);
+        }
     }
 
 	private void setThreadForLocalDBRuns(Thread threadForLocalDBRuns) {

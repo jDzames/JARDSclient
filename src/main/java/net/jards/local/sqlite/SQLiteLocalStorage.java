@@ -352,6 +352,9 @@ public class SQLiteLocalStorage extends LocalStorage {
 
     @Override
     protected Map<String, String> findOne(String collectionName, Predicate p, ResultOptions options) throws SqliteException {
+        if (options==null){
+            options = new ResultOptions();
+        }
         options.setLimit(1);
         return find(collectionName, p, options).get(0);
     }

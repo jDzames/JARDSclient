@@ -89,7 +89,7 @@ public class Collection {
         for (Map<String, String> docMap:result) {
             originalQueryDocuments.add(new Document(docMap, storage));
         }
-        ResultSet resultSet = new ResultSet(originalQueryDocuments);
+        ResultSet resultSet = new ResultSet(predicate, this, resultOptions);
         return resultSet;
     }
 

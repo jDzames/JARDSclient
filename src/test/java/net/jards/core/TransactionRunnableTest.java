@@ -18,6 +18,7 @@ public class TransactionRunnableTest implements  TransactionRunnable {
             //d = collection.update(d, transaction);
             //System.out.println(d.getJsonData());
             //collection.remove(d, transaction);
+            System.out.println(collection.findOne(null, null).getJsonData());
         } catch (LocalStorageException e) {
             e.printStackTrace();
         }

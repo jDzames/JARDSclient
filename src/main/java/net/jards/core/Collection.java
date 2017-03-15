@@ -90,6 +90,13 @@ public class Collection {
             originalQueryDocuments.add(new Document(docMap, storage));
         }
         ResultSet resultSet = new ResultSet(predicate, this, resultOptions);
+
+        //add result set to opened result sets ins torage
+        storage.addOpenedResultSet(resultSet);
+
+        //add initial data
+        resultSet.setResult(originalQueryDocuments);
+
         return resultSet;
     }
 

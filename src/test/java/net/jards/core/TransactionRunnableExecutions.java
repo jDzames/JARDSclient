@@ -5,20 +5,27 @@ import net.jards.errors.LocalStorageException;
 /**
  * Created by jDzama on 11.1.2017.
  */
-public class TransactionRunnableTest implements  TransactionRunnable {
+public class TransactionRunnableExecutions implements  TransactionRunnable {
 
     @Override
     public void run(ExecutionContext context, Transaction transaction, Object... arguments) {
         Document d = new Document();
         d.setJsonData("{example:for local}");//"{test1:Added through StoragesTogether}");
+        Document d1 = new Document();
+        d1.setJsonData("{example:five,not_example:ok}");//"{test1:Added through StoragesTogether}");
+        Document d2 = new Document();
+        d2.setJsonData("{example:six,not_example:ok}");//"{test1:Added through StoragesTogether}");
+
         Collection collection = context.getCollection("LocalTest");
         try {
-            d = collection.create(d, transaction);
+            //d = collection.create(d, transaction);
+            d1 = collection.create(d1, transaction);
+            d2 = collection.create(d2, transaction);
             //d.setJsonData("{example:changedData}");
             //d = collection.update(d, transaction);
             //System.out.println(d.getJsonData());
             //collection.remove(d, transaction);
-            System.out.println(collection.findOne(null, null).getJsonData());
+
         } catch (LocalStorageException e) {
             e.printStackTrace();
         }

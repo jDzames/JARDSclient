@@ -329,6 +329,13 @@ public class Storage {
 		remoteStorage.start("");
     }
 
+    void addOpenedResultSet(ResultSet resultSet) {
+        synchronized (openedResultSets){
+            this.openedResultSets.offer(resultSet);
+            openedResultSets.notify();
+        }
+    }
+
     private void applyListOfChangesOnOpenedResultSets(List<DocumentChanges> documentChanges) {
         openedResultSets.removeIf(ResultSet::isClosed);
         for (ResultSet resultSet:openedResultSets){

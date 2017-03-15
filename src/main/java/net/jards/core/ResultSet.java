@@ -1,6 +1,7 @@
 package net.jards.core;
 
 import rx.Observable;
+import rx.subjects.PublishSubject;
 
 import java.util.*;
 
@@ -10,6 +11,8 @@ import static net.jards.core.ResultSet.DocumentChange.ChangeType.*;
  * Self-updating result set.
  */
 public class ResultSet {
+
+    private boolean newResult;
 
     public interface ChangeListener {
 		void resultChanged(DocumentChanges change);
@@ -50,6 +53,7 @@ public class ResultSet {
 
     private final List<ChangeListener> changeListeners = new ArrayList<>();
     private final List<ActualDocumentsListener> actualDocumentsListeners = new ArrayList<>();
+    private final List<PublishSubject<DocumentList>> rxObservablesListening = new LinkedList<>();
 
     public ResultSet(Predicate predicate, Collection collection, ResultOptions resultOptions) {
         this.predicate = predicate;
@@ -64,6 +68,7 @@ public class ResultSet {
                 this.sourceDocuments.add(document);
             }
         }
+        newResult = true;
         updateFinalDocuments();
     }
 
@@ -78,6 +83,7 @@ public class ResultSet {
         //   if not contains - add to newFD
         for (Document document: sourceDocuments){
             if (!lastChanges.containsKey(document.getId())){
+                newResult = true;
                 newFinalDocuments.add(document);
             }
         }
@@ -90,12 +96,21 @@ public class ResultSet {
         //TODO order by ?
         //set newFD to new result
         finalDocuments = newFinalDocuments;
-
-        //apply changes to listeners
-        for (ActualDocumentsListener listener:this.actualDocumentsListeners) {
-            if (listener!= null){
-                listener.resultChanged(new DocumentList(finalDocuments));
+        //apply changes to listeners, if something changed
+        if (newResult){
+            for (ActualDocumentsListener listener:this.actualDocumentsListeners) {
+                if (listener!= null){
+                    listener.resultChanged(new DocumentList(finalDocuments));
+                }
             }
+            for (PublishSubject<DocumentList> observable : this.rxObservablesListening){
+                try {
+                    observable.onNext(getDocuments());
+                } catch (Exception e){
+                    observable.onError(e);
+                }
+            }
+            newResult = false;
         }
     }
 
@@ -103,10 +118,19 @@ public class ResultSet {
 	 * Closes the result sets.
 	 */
 	public void close() {
-        sourceDocuments.clear();
+        for (PublishSubject<DocumentList> observable : this.rxObservablesListening){
+            try {
+                observable.onCompleted();
+            } catch (Exception e){
+                observable.onError(e);
+            }
+        }
+        sourceDocuments = null;
         finalDocuments = null;
+        rxObservablesListening.clear();
         changeListeners.clear();
         actualDocumentsListeners.clear();
+        newResult = false;
         closed = true;
 	}
 
@@ -119,7 +143,14 @@ public class ResultSet {
 	}
 
 	public Observable<DocumentList> getAsRxList() {
-		return null;
+        PublishSubject<DocumentList> subject = PublishSubject.create();
+        rxObservablesListening.add(subject);
+        try {
+            subject.onNext(this.getDocuments());
+        }catch (Exception e){
+            subject.onError(e);
+        }
+		return subject;
 	}
 
 	public Observable<DocumentChanges> getAsRxChanges() {
@@ -146,6 +177,7 @@ public class ResultSet {
         //add documents from document changes
         for (Document document: documentChanges.getAddedDocuments()){
             if (matchDocument(document)){
+                newResult = true;
                 sourceDocuments.add(document);
             }
         }
@@ -154,6 +186,7 @@ public class ResultSet {
             if (matchDocument(document)){
                 for (int i = 0; i < this.sourceDocuments.size(); i++) {
                     if (sourceDocuments.get(i).getId().equals(document.getId())){
+                        newResult = true;
                         sourceDocuments.set(i, document);
                     }
                 }
@@ -162,11 +195,11 @@ public class ResultSet {
         //remove documents
         for (Document document : documentChanges.getRemovedDocuments()) {
             if (matchDocument(document)){
+                newResult = true;
                 sourceDocuments.removeIf(doc -> doc.getId().equals(document.getId()));
             }
         }
-
-        //recreate final documents
+        //update final documents
         updateFinalDocuments();
     }
 
@@ -210,19 +243,23 @@ public class ResultSet {
     private void updateOverlayChangesWithOverlay(DocumentChanges changes, DocumentChanges relevantChanges){
         //add all relevant added documents that are not used yet
         for (Document document : relevantChanges.getAddedDocuments()){
+            newResult = true;
             lastChanges.put(document.getId(), new DocumentChange(ADD, document));
         }
         //update - all changes for this collection (remove those), relevant changes (update those)
         for (Document document : changes.getUpdatedDocuments()){
             if (this.collection.getName().equals(document.getCollection().getName())){
+                newResult = true;
                 lastChanges.put(document.getId(), new DocumentChange(REMOVE, document));
             }
         }
         for (Document document : relevantChanges.getUpdatedDocuments()){
+            newResult = true;
             lastChanges.put(document.getId(), new DocumentChange(UPDATE, document));
         }
         //remove
         for (Document document : relevantChanges.getRemovedDocuments()){
+            newResult = true;
             lastChanges.put(document.getId(), new DocumentChange(REMOVE, document));
         }
     }

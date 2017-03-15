@@ -319,9 +319,24 @@ public class SQLiteLocalStorage extends LocalStorage {
                         "Sqlite local database, preparing query.",
                         "Wrong collection. ", null);
             }
+            if (options == null){
+                //add empty options
+                options = new ResultOptions();
+            }
             //prepare statement and fill it with parameters
             SQLiteQueryGenerator sqLiteQueryGenerator = new SQLiteQueryGenerator(collectionSetup);
-            preparedStatement = sqLiteQueryGenerator.generateFilterStatement(connection, p, options);
+            Predicate supportedPredicate = LocalStorage.createFilteringPredicate(p, new PredicateFilter() {
+                @Override
+                public boolean isAcceptable(Predicate predicate) {
+                    for (String index:predicate.getProperties()){
+                        if (!collectionSetup.hasIndex(index)){
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            });
+            preparedStatement = sqLiteQueryGenerator.generateFilterStatement(connection, supportedPredicate, options);
             //execute query
             ResultSet rs;
             rs = preparedStatement.executeQuery();

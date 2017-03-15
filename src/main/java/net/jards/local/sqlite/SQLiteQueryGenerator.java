@@ -64,6 +64,7 @@ public class SQLiteQueryGenerator implements LocalStorage.PredicateFilter {
             List<String> orderByProperties = resultOptions.getOrderByProperties();
             List<ResultOptions.OrderBy> orderByTypes = resultOptions.getOrderByType();
             if (orderByProperties!=null && orderByProperties.size()>0){
+
                 sql.append(" order by ");
                 for (int i = 0; i < orderByProperties.size() - 1; i++) {
                     sql.append(orderByProperties.get(i)).append(" ")
@@ -87,6 +88,7 @@ public class SQLiteQueryGenerator implements LocalStorage.PredicateFilter {
 
     private StringBuilder createPredicatesSql(Predicate p){
         StringBuilder sqlPart = new StringBuilder();
+        sqlPart.append(" where ");
         if (p instanceof Predicate.Equals){
             return sqlPart.append(" ")
                     .append(p.getProperties().iterator().next())

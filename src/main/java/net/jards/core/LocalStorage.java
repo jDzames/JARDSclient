@@ -195,7 +195,7 @@ public abstract class LocalStorage {
 	 *            the predicate filter.
 	 * @return
 	 */
-	protected static Predicate createFilteringPredicate(Collection collection, Predicate predicate, PredicateFilter filter) {
+	protected static Predicate createFilteringPredicate(Predicate predicate, PredicateFilter filter) {
 		if (predicate == null) {
 			return null;
 		}
@@ -207,7 +207,7 @@ public abstract class LocalStorage {
 		if (predicate instanceof And) {
 			List<Predicate> predicates = new ArrayList<>();
 			for (Predicate p : ((And) predicate).getSubPredicates()) {
-				Predicate filteredPredicate = createFilteringPredicate(collection, p, filter);
+				Predicate filteredPredicate = createFilteringPredicate(p, filter);
 				if (filteredPredicate != null) {
 					predicates.add(filteredPredicate);
 				}
@@ -227,7 +227,7 @@ public abstract class LocalStorage {
 		if (predicate instanceof Or) {
 			List<Predicate> predicates = new ArrayList<>();
 			for (Predicate p : ((Or) predicate).getSubPredicates()) {
-				Predicate filteredPredicate = createFilteringPredicate(collection, p, filter);
+				Predicate filteredPredicate = createFilteringPredicate(p, filter);
 				if (filteredPredicate == null) {
 					return null;
 				}
@@ -244,7 +244,7 @@ public abstract class LocalStorage {
 			return new Or(predicates.toArray(new Predicate[predicates.size()]));
 		}
 
-		//equals, compare, equal properties, compare properties not needed, checked by filter
+		//equals, compare, equal properties, compare properties not needed, checked by filter (if there is index for properties)
 
 		return predicate;
 	}

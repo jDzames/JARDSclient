@@ -12,7 +12,7 @@ import java.util.Queue;
 
 public abstract class LocalStorage {
 
-	public interface PredicateFilter {
+    public interface PredicateFilter {
 		boolean isAcceptable(Predicate predicate);
 	}
 
@@ -92,6 +92,15 @@ public abstract class LocalStorage {
 		return collections.get(collectionName);
 	}
 
+    protected void invalidateRemoteCollections() throws LocalStorageException {
+        for (CollectionSetup collectionSetup:this.collections.values()){
+            if (!collectionSetup.isLocal()){
+                this.removeCollection(collectionSetup);
+                this.addCollection(collectionSetup);
+            }
+        }
+    }
+
 	protected JSONPropertyExtractor getJsonPropertyExtractor() {
 		return jsonPropertyExtractor;
 	}
@@ -149,7 +158,9 @@ public abstract class LocalStorage {
 	protected abstract void addCollection(CollectionSetup collection) throws LocalStorageException;
 
 	void removeCollection(String collectionName) throws LocalStorageException {
-		this.removeCollection(collections.get(collectionName));
+        if (collections.containsKey(collectionName)){
+            this.removeCollection(collections.get(collectionName));
+        }
 	}
 
 	protected abstract void removeCollection(CollectionSetup collection) throws LocalStorageException;

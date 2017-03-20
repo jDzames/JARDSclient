@@ -58,14 +58,14 @@ public class AppTest
 
             /*Object[] methodArgs = new Object[1];
             methodArgs[0] = "Pridany cez DDP 2";*/
-            //storage.callAsync("tasks.insert", "Pridany cez DDP 4");
+            storage.callAsync("tasks.insert", "Added through DDP 7");
 
 
             //wait for work to finish (and see logs in console)
             //Thread.sleep(3000);
             //Thread.sleep(12000);
-            storage.executeLocally(new TransactionRunnableQuery());
-            storage.executeLocallyAsync(new TransactionRunnableExecutions());
+            //storage.executeLocally(new TransactionRunnableQuery());
+            //storage.executeLocallyAsync(new TransactionRunnableExecutions());
 
             //Thread.sleep(300000);
             Thread.sleep(20000);

@@ -321,12 +321,17 @@ public class Storage {
             }
 
 			public void collectionInvalidated(String collection) throws LocalStorageException {
-				localStorage.removeCollection(collection);
+                if (collection == null || "".equals(collection)){
+                    //reset all collections (new session on remote storage)
+                    localStorage.invalidateRemoteCollections();
+                } else {
+                    //reset this collection
+                    CollectionSetup collectionSetup = localStorage.getCollectionSetup(collection);
+                    localStorage.removeCollection(collectionSetup);
+                    localStorage.addCollection(collectionSetup);
+                }
 			}
 		});
-
-		//TODO session state
-		remoteStorage.start("");
     }
 
     void addOpenedResultSet(ResultSet resultSet) {
@@ -568,13 +573,19 @@ public class Storage {
 
         //start local storage and run thread for local work (this order)
         localStorage.start();
-		requestsLocalHandlingThread = new RequestsLocalHandlingThread();
+
+        //if no session, invalidate (reset) all remote collections (if they are empty or with data, new session)
+        localStorage.invalidateRemoteCollections();
+
+        requestsLocalHandlingThread = new RequestsLocalHandlingThread();
         new Thread(requestsLocalHandlingThread).start();
         //TODO read and return queues from database in localStorage start (unconfirmed and pending work)
 
         //run thread for remote work and start remotes storage
         requestsRemoteHandlingThread = new RequestsRemoteHandlingThread();
         new Thread(requestsRemoteHandlingThread).start();
+
+        //start with session
 		remoteStorage.start(sessionState);
 	}
 

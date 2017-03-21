@@ -1,5 +1,7 @@
 package net.jards.core;
 
+import net.jards.errors.JsonFormatException;
+
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +16,7 @@ public interface JSONPropertyExtractor {
      * @param propertyPaths specified names of properties which values to extract
      * @return map with property paths and values
      */
-    Map<String, Object> extractPropertyValues(String jsonString, List<String> propertyPaths);
+    Map<String, Object> extractPropertyValues(String jsonString, List<String> propertyPaths) throws JsonFormatException;
 
     /**
      * Extracts single value of given json string.
@@ -22,6 +24,6 @@ public interface JSONPropertyExtractor {
      * @param propertyPath specified name of property which value to extract
      * @return value of specified property
      */
-    Object extractPropertyValue(String jsonString, String propertyPath);
+    Object extractPropertyValue(String jsonString, String propertyPath) throws JsonFormatException;
 
 }

@@ -1,9 +1,8 @@
 package net.jards.core;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.ReadContext;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import net.jards.errors.JsonFormatException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -11,12 +10,6 @@ import java.util.Map;
 
 
 public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
-
-    private Configuration listConfig = Configuration.defaultConfiguration()
-            //.addOptions(Option.ALWAYS_RETURN_LIST)
-            .addOptions(Option.SUPPRESS_EXCEPTIONS);
-    private Configuration stringConfig = Configuration.defaultConfiguration()
-            .addOptions(Option.SUPPRESS_EXCEPTIONS);
 
 
     /**
@@ -26,7 +19,7 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
      * @return map with property paths and values
      */
     @Override
-    public Map<String, Object> extractPropertyValues(String jsonString, List<String> propertyPaths) {
+    public Map<String, Object> extractPropertyValues(String jsonString, List<String> propertyPaths) throws JsonFormatException {
         Map<String, Object> values = new HashMap<>();
         if (jsonString == null || jsonString.length()==0){
             return values;
@@ -34,13 +27,9 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
         if (propertyPaths == null || propertyPaths.size()==0){
             return values;
         }
-        ReadContext ctx = JsonPath.using(listConfig).parse(jsonString);
+
         for (String propertyPath:propertyPaths) {
-             if (propertyPaths.get(0).charAt(0)=='$'){
-                 values.put(propertyPath, ctx.read(propertyPath));
-            } else {
-                 values.put(propertyPath, ctx.read("$."+propertyPath));
-            }
+            values.put(propertyPath, extractPropertyValueFromJson(new JsonOA(jsonString), propertyPath));
         }
         return values;
     }
@@ -52,13 +41,86 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
      * @return value of specified property
      */
     @Override
-    public Object extractPropertyValue(String jsonString, String propertyPath) {
-        if (propertyPath == null || propertyPath.length()== 0 )
+    public Object extractPropertyValue(String jsonString, String propertyPath) throws JsonFormatException {
+        JsonOA jsonOA =new JsonOA(jsonString);
+        return extractPropertyValueFromJson(jsonOA, propertyPath);
+    }
+
+    public Object extractPropertyValueFromJson(JsonOA json, String propertyPath) throws JsonFormatException {
+        if (propertyPath == null )
             return null;
-        if (propertyPath.charAt(0)!='$'){
-            return JsonPath.using(stringConfig).parse(jsonString).read("$."+propertyPath);
+        if (propertyPath.length()== 0)
+            return json;
+        try {
+
+        } catch (Exception e){
+            throw new JsonFormatException("Wrong format of json String or wrong property path. ",e);
         }
-        return JsonPath.using(stringConfig).parse(jsonString).read(propertyPath);
+        String[] properties = propertyPath.split("\\.");
+        for (int i = 0; i < properties.length; i++) {
+            String prop = properties[i];
+            if (prop.contains("[")){
+                String[] arrayProperties = prop.split("\\[");
+                for (int j = 0; j < arrayProperties.length; j++) {
+                    String arrayElement = arrayProperties[j];
+                    JsonElement element = null;
+                    if (arrayElement.charAt(arrayElement.length()-1)==']'){
+                        int arrayIndex = Integer.parseInt(arrayElement.substring(0, arrayElement.length()-1));
+                        json.getFromJsonArray(arrayIndex);
+                    } else {
+                        json.getFromJsonObject(arrayElement);
+                    }
+                    if (i == properties.length-1 && j == arrayProperties.length-1){
+                        return json.toString();
+                    }
+                }
+            } else {
+                if (i == properties.length-1){
+                    return json.getFromJsonObject(prop).toString();
+                }
+                json.getFromJsonObject(prop);
+            }
+        }
+        return json;
+    }
+
+    public class JsonOA{
+
+        private JsonElement jsonElement;
+
+        public JsonOA(String json){
+            JsonParser parser = new JsonParser();
+            jsonElement = parser.parse(json);
+        }
+        public JsonOA(JsonElement jsonElement){
+            this.jsonElement = jsonElement;
+        }
+
+        public JsonElement getFromJsonArray(int i){
+            this.jsonElement = jsonElement.getAsJsonArray().get(i);
+            return jsonElement;
+        }
+
+        public JsonElement getFromJsonObject(String property){
+            this.jsonElement = jsonElement.getAsJsonObject().get(property);
+            return jsonElement;
+        }
+
+        public JsonElement getJsonElement() {
+            return jsonElement;
+        }
+
+        public void setJsonElement(JsonElement jsonElement) {
+            this.jsonElement = jsonElement;
+        }
+
+        @Override
+        public String toString() {
+            if (jsonElement==null){
+                return "null";
+            }
+            return jsonElement.toString();
+        }
     }
 
 }

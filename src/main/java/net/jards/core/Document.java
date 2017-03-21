@@ -1,5 +1,7 @@
 package net.jards.core;
 
+import net.jards.errors.JsonFormatException;
+
 import java.util.*;
 
 public class Document {
@@ -74,7 +76,7 @@ public class Document {
 		}
 	}
 
-	public Object getPropertyValue(String propertyName) {
+	public Object getPropertyValue(String propertyName) throws JsonFormatException {
 		Object result = null;
 
 		if ((propertyCache != null) && propertyCache.containsKey(propertyName)) {
@@ -100,10 +102,15 @@ public class Document {
 			return;
 		}
 
-		Map<String, Object> extractedProperties = propertyExtractor.extractPropertyValues(jsonData,
-				new ArrayList<String>(propertyNameSet));
+        Map<String, Object> extractedProperties = null;
+        try {
+            extractedProperties = propertyExtractor.extractPropertyValues(jsonData,
+                    new ArrayList<String>(propertyNameSet));
+        } catch (JsonFormatException e) {
+            e.printStackTrace();
+        }
 
-		if (propertyCache == null) {
+        if (propertyCache == null) {
 			propertyCache = new HashMap<>();
 		}
 

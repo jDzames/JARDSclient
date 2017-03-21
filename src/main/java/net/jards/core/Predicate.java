@@ -1,5 +1,7 @@
 package net.jards.core;
 
+import net.jards.errors.JsonFormatException;
+
 import java.util.*;
 
 import static net.jards.core.Predicate.Operator.*;
@@ -164,8 +166,12 @@ public abstract class Predicate {
 				return false;
 			}
 
-			return value.equals(document.getPropertyValue(property));
-		}
+            try {
+                return value.equals(document.getPropertyValue(property));
+            } catch (JsonFormatException e) {
+                return false;
+            }
+        }
 
         public Object getValue() {
             return value;
@@ -218,39 +224,42 @@ public abstract class Predicate {
             if (document == null) {
                 return false;
             }
-
-            if (operator == SameAs){
-                return value.equals(document.getPropertyValue(property));
-            } else if (operator == NotSameAs){
-                return !value.equals(document.getPropertyValue(property));
-            } else if (operator == Bigger){
-                if (value instanceof String){
-                    //property > value (compareTo gives >0), but we compare in other order
-                    return ((String)value).compareTo((String)document.getPropertyValue(property)) < 0;
-                } else if (value instanceof Number){
-                    return ((Number)value).doubleValue() < ((Number)document.getPropertyValue(property)).doubleValue();
-                } else return false;
-            } else if (operator == BiggerOrEquals){
-                if (value instanceof String){
-                    return ((String)value).compareTo((String)document.getPropertyValue(property)) <= 0;
-                } else if (value instanceof Number){
-                    return ((Number)value).doubleValue() <= ((Number)document.getPropertyValue(property)).doubleValue();
-                } else return false;
-            } else if (operator == Smaller){
-                if (value instanceof String){
-                    return ((String)value).compareTo((String)document.getPropertyValue(property)) > 0;
-                } else if (value instanceof Number){
-                    return ((Number)value).doubleValue() > ((Number)document.getPropertyValue(property)).doubleValue();
-                } else return false;
-            } else if (operator == SmallerOrEquals){
-                if (value instanceof String){
-                    //property > value (compareTo gives >0), but we compare in other order
-                    return ((String)value).compareTo((String)document.getPropertyValue(property)) > 0;
-                } else if (value instanceof Number){
-                    return ((Number)value).doubleValue() >= ((Number)document.getPropertyValue(property)).doubleValue();
-                } else return false;
+            try {
+                if (operator == SameAs){
+                    return value.equals(document.getPropertyValue(property));
+                } else if (operator == NotSameAs){
+                    return !value.equals(document.getPropertyValue(property));
+                } else if (operator == Bigger){
+                    if (value instanceof String){
+                        //property > value (compareTo gives >0), but we compare in other order
+                        return ((String)value).compareTo((String)document.getPropertyValue(property)) < 0;
+                    } else if (value instanceof Number){
+                        return ((Number)value).doubleValue() < ((Number)document.getPropertyValue(property)).doubleValue();
+                    } else return false;
+                } else if (operator == BiggerOrEquals){
+                    if (value instanceof String){
+                        return ((String)value).compareTo((String)document.getPropertyValue(property)) <= 0;
+                    } else if (value instanceof Number){
+                        return ((Number)value).doubleValue() <= ((Number)document.getPropertyValue(property)).doubleValue();
+                    } else return false;
+                } else if (operator == Smaller){
+                    if (value instanceof String){
+                        return ((String)value).compareTo((String)document.getPropertyValue(property)) > 0;
+                    } else if (value instanceof Number){
+                        return ((Number)value).doubleValue() > ((Number)document.getPropertyValue(property)).doubleValue();
+                    } else return false;
+                } else if (operator == SmallerOrEquals){
+                    if (value instanceof String){
+                        //property > value (compareTo gives >0), but we compare in other order
+                        return ((String)value).compareTo((String)document.getPropertyValue(property)) > 0;
+                    } else if (value instanceof Number){
+                        return ((Number)value).doubleValue() >= ((Number)document.getPropertyValue(property)).doubleValue();
+                    } else return false;
+                }
+                return false;
+            } catch (JsonFormatException e) {
+                return false;
             }
-            return false;
         }
 
         public Object getValue() {
@@ -286,7 +295,11 @@ public abstract class Predicate {
                 return false;
             }
 
-            return property2.equals(document.getPropertyValue(property));
+            try {
+                return property2.equals(document.getPropertyValue(property));
+            } catch (JsonFormatException e) {
+                return false;
+            }
         }
     }
 
@@ -316,41 +329,44 @@ public abstract class Predicate {
             if (document == null || this.property2 == null) {
                 return false;
             }
+            try {
+                Object property2Object = document.getPropertyValue(property2);
 
-            Object property2Object = document.getPropertyValue(property2);
-
-            if (operator == SameAs){
-                return property2Object.equals(document.getPropertyValue(property));
-            } else if (operator == NotSameAs){
-                return !property2Object.equals(document.getPropertyValue(property));
-            } else if (operator == Bigger){
-                if (property2Object instanceof String){
-                    //property > value (compareTo gives >0), but we compare in other order
-                    return ((String)property2Object).compareTo((String)document.getPropertyValue(property)) < 0;
-                } else if (property2Object instanceof Number){
-                    return ((Number)property2Object).doubleValue() < ((Number)document.getPropertyValue(property)).doubleValue();
-                } else return false;
-            } else if (operator == BiggerOrEquals){
-                if (property2Object instanceof String){
-                    return ((String)property2Object).compareTo((String)document.getPropertyValue(property)) <= 0;
-                } else if (property2Object instanceof Number){
-                    return ((Number)property2Object).doubleValue() <= ((Number)document.getPropertyValue(property)).doubleValue();
-                } else return false;
-            } else if (operator == Smaller){
-                if (property2Object instanceof String){
-                    return ((String)property2Object).compareTo((String)document.getPropertyValue(property)) > 0;
-                } else if (property2Object instanceof Number){
-                    return ((Number)property2Object).doubleValue() > ((Number)document.getPropertyValue(property)).doubleValue();
-                } else return false;
-            } else if (operator == SmallerOrEquals){
-                if (property2Object instanceof String){
-                    //property > value (compareTo gives >0), but we compare in other order
-                    return ((String)property2Object).compareTo((String)document.getPropertyValue(property)) > 0;
-                } else if (property2Object instanceof Number){
-                    return ((Number)property2Object).doubleValue() >= ((Number)document.getPropertyValue(property)).doubleValue();
-                } else return false;
+                if (operator == SameAs){
+                    return property2Object.equals(document.getPropertyValue(property));
+                } else if (operator == NotSameAs){
+                    return !property2Object.equals(document.getPropertyValue(property));
+                } else if (operator == Bigger){
+                    if (property2Object instanceof String){
+                        //property > value (compareTo gives >0), but we compare in other order
+                        return ((String)property2Object).compareTo((String)document.getPropertyValue(property)) < 0;
+                    } else if (property2Object instanceof Number){
+                        return ((Number)property2Object).doubleValue() < ((Number)document.getPropertyValue(property)).doubleValue();
+                    } else return false;
+                } else if (operator == BiggerOrEquals){
+                    if (property2Object instanceof String){
+                        return ((String)property2Object).compareTo((String)document.getPropertyValue(property)) <= 0;
+                    } else if (property2Object instanceof Number){
+                        return ((Number)property2Object).doubleValue() <= ((Number)document.getPropertyValue(property)).doubleValue();
+                    } else return false;
+                } else if (operator == Smaller){
+                    if (property2Object instanceof String){
+                        return ((String)property2Object).compareTo((String)document.getPropertyValue(property)) > 0;
+                    } else if (property2Object instanceof Number){
+                        return ((Number)property2Object).doubleValue() > ((Number)document.getPropertyValue(property)).doubleValue();
+                    } else return false;
+                } else if (operator == SmallerOrEquals){
+                    if (property2Object instanceof String){
+                        //property > value (compareTo gives >0), but we compare in other order
+                        return ((String)property2Object).compareTo((String)document.getPropertyValue(property)) > 0;
+                    } else if (property2Object instanceof Number){
+                        return ((Number)property2Object).doubleValue() >= ((Number)document.getPropertyValue(property)).doubleValue();
+                    } else return false;
+                }
+                return false;
+            } catch (JsonFormatException e) {
+                return false;
             }
-            return false;
         }
 
         public Operator getOperator() {

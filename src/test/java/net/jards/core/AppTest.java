@@ -37,6 +37,8 @@ public class AppTest
 
     public void testApp()
     {
+
+
         StorageSetup storageSetup = new StorageSetup();
         storageSetup.setPrefix("tests_");
         storageSetup.addCollectionSetup("LocalTest", true, "example");
@@ -58,7 +60,7 @@ public class AppTest
 
             /*Object[] methodArgs = new Object[1];
             methodArgs[0] = "Pridany cez DDP 2";*/
-            storage.callAsync("tasks.insert", "Added through DDP 7");
+            //storage.callAsync("tasks.insert", "Added through DDP 7");
 
 
             //wait for work to finish (and see logs in console)
@@ -68,7 +70,7 @@ public class AppTest
             //storage.executeLocallyAsync(new TransactionRunnableExecutions());
 
             //Thread.sleep(300000);
-            Thread.sleep(20000);
+            //Thread.sleep(20000);
 
         } catch (LocalStorageException | InterruptedException e) {
             e.printStackTrace();
@@ -103,3 +105,25 @@ public class AppTest
 /**
  * Rigourous Test :-)
  */
+
+/*
+        try {
+            String jsonString = "{first=123, \"second\": [[4, 5, 6], 5, 6]}";
+            String jsonString2 = "{\"menu\": {\n" +
+                    "  \"id\": \"file\",\n" +
+                    "  \"value\": \"File\",\n" +
+                    "  \"popup\": {\n" +
+                    "    \"menuitem\": [\n" +
+                    "      {\"value\": \"New\", \"onclick\": \"CreateNewDoc()\"},\n" +
+                    "      {\"value\": \"Open\", \"onclick\": \"OpenDoc()\"},\n" +
+                    "      {\"value\": \"Close\", \"onclick\": \"CloseDoc()\"}\n" +
+                    "    ]\n" +
+                    "  }\n" +
+                    "}}";
+            JSONPropertyExtractor parser = new DefaultJSONPropertyExtractor();
+            System.out.println(parser.extractPropertyValue(jsonString, "second[0][0]"));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        */

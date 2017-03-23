@@ -102,6 +102,11 @@ public class DDPRemoteStorage extends RemoteStorage {
     @Override
 	protected void start(String sessionState) {
 		try {
+            if (ddpClient != null &&  ddpClient.getState().equals(DDPClient.CONNSTATE.Disconnected)){
+                ddpClient.disconnect();
+            }
+            //setReadyForConnect();
+
 			ddpClient.connect();
 
             //TODO session - ?

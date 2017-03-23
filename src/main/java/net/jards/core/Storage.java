@@ -312,7 +312,7 @@ public class Storage {
 
             @Override
             public void unsubscribed(String subscriptionName, int subscriptionId, RemoteStorageError error) {
-                // TODO Auto-generated method stub
+                System.out.println("Server stopped subscription: "+subscriptionName);
             }
 
             @Override

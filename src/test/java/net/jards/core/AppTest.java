@@ -70,7 +70,7 @@ public class AppTest
             //storage.executeLocallyAsync(new TransactionRunnableExecutions());
 
             //Thread.sleep(300000);
-            Thread.sleep(20000);
+            //Thread.sleep(20000);
 
         } catch (LocalStorageException | InterruptedException e) {
             e.printStackTrace();

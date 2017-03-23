@@ -126,7 +126,7 @@ public class Storage {
                         LinkedList<ExecutionRequest> requests = new LinkedList<>();
                         while (!unconfirmedRequestsRemote.isEmpty() && running) {
                             ExecutionRequest request = unconfirmedRequestsRemote.poll();
-                            callRequest(request);
+                            executeRequest(request);
                             requests.add(request);
                         }
                         unconfirmedRequestsRemote.addAll(requests);
@@ -152,7 +152,7 @@ public class Storage {
                     continue;
                 }
 
-                callRequest(request);
+                executeRequest(request);
                 synchronized (unconfirmedRequestsRemote){
                     unconfirmedRequestsRemote.offer(request);
                     unconfirmedRequestsRemote.notify();
@@ -160,7 +160,7 @@ public class Storage {
             }
         }
 
-        private void callRequest(ExecutionRequest request) {
+        private void executeRequest(ExecutionRequest request) {
             if (request.isCall()){
                 remoteStorage.call(request.getMethodName(), request.getAttributes(), request.getSeed(), request);
             } else if (request.isSubscribe()){

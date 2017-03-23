@@ -81,7 +81,7 @@ public class DDPRemoteStorage extends RemoteStorage {
         executeMethodsCount = new HashMap<>();
         this.session = session;
 
-        setReadyForConnect();
+        //setReadyForConnect();
     }
 
     private void setReadyForConnect(){
@@ -102,12 +102,8 @@ public class DDPRemoteStorage extends RemoteStorage {
     @Override
 	protected void start(String sessionState) {
 		try {
-            if (ddpClient != null &&  ddpClient.getState().equals(DDPClient.CONNSTATE.Disconnected)){
-                ddpClient.disconnect();
-            }
-            //setReadyForConnect();
-
-			ddpClient.connect();
+            setReadyForConnect();
+            ddpClient.connect();
 
             //TODO session - ?
             // https://forums.meteor.com/t/meteor-passing-session-values-from-client-to-server/5716
@@ -180,7 +176,6 @@ public class DDPRemoteStorage extends RemoteStorage {
 	protected void call(String method, Object[] arguments, String uuidSeed, ExecutionRequest request) {
 		//TODO  seed
         //check method name and arguments with request or no? or if request is not null?
-        System.out.println("volanie metody poslane");
         int methodId = ddpClient.call(method, arguments);
         request.setRemoteCallsId(methodId);
 		methods.put(methodId, request);

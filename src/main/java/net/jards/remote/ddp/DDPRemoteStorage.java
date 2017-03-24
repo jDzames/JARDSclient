@@ -101,9 +101,19 @@ public class DDPRemoteStorage extends RemoteStorage {
      */
     @Override
 	protected void start(String sessionState) {
-		try {
-            setReadyForConnect();
-            ddpClient.connect();
+        try {
+            if (ddpClient==null){
+                setReadyForConnect();
+                ddpClient.connect();
+            } else {
+                if (!ddpClient.getState().equals(DDPClient.CONNSTATE.Connected)){
+                    try {
+                        ddpClient.disconnect();
+                        setReadyForConnect();
+                        ddpClient.connect();
+                    } catch (Exception e){}
+                }
+            }
 
             //TODO session - ?
             // https://forums.meteor.com/t/meteor-passing-session-values-from-client-to-server/5716

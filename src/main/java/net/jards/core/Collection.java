@@ -72,9 +72,8 @@ public class Collection {
 
 	}
 
-	public ResultSet find(Predicate predicate) {
-		//without transaction, needs its own connection,
-		return null;
+	public ResultSet find(Predicate predicate) throws LocalStorageException {
+		return this.find(predicate, null);
 	}
 
     public ResultSet find(Predicate predicate, ResultOptions resultOptions) throws LocalStorageException {
@@ -98,6 +97,10 @@ public class Collection {
         resultSet.setResult(originalQueryDocuments);
 
         return resultSet;
+    }
+
+    public Document findOne(Predicate predicate) throws LocalStorageException {
+        return this.findOne(predicate, null);
     }
 
 	public Document findOne(Predicate predicate, ResultOptions resultOptions) throws LocalStorageException {

@@ -52,36 +52,35 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
         if (propertyPath.length()== 0)
             return json;
         try {
-
-        } catch (Exception e){
-            throw new JsonFormatException("Wrong format of json String or wrong property path. ",e);
-        }
-        String[] properties = propertyPath.split("\\.");
-        for (int i = 0; i < properties.length; i++) {
-            String prop = properties[i];
-            if (prop.contains("[")){
-                String[] arrayProperties = prop.split("\\[");
-                for (int j = 0; j < arrayProperties.length; j++) {
-                    String arrayElement = arrayProperties[j];
-                    JsonElement element = null;
-                    if (arrayElement.charAt(arrayElement.length()-1)==']'){
-                        int arrayIndex = Integer.parseInt(arrayElement.substring(0, arrayElement.length()-1));
-                        json.getFromJsonArray(arrayIndex);
-                    } else {
-                        json.getFromJsonObject(arrayElement);
+            String[] properties = propertyPath.split("\\.");
+            for (int i = 0; i < properties.length; i++) {
+                String prop = properties[i];
+                if (prop.contains("[")){
+                    String[] arrayProperties = prop.split("\\[");
+                    for (int j = 0; j < arrayProperties.length; j++) {
+                        String arrayElement = arrayProperties[j];
+                        JsonElement element = null;
+                        if (arrayElement.charAt(arrayElement.length()-1)==']'){
+                            int arrayIndex = Integer.parseInt(arrayElement.substring(0, arrayElement.length()-1));
+                            json.getFromJsonArray(arrayIndex);
+                        } else {
+                            json.getFromJsonObject(arrayElement);
+                        }
+                        if (i == properties.length-1 && j == arrayProperties.length-1){
+                            return json.toString();
+                        }
                     }
-                    if (i == properties.length-1 && j == arrayProperties.length-1){
-                        return json.toString();
+                } else {
+                    if (i == properties.length-1){
+                        return json.getFromJsonObject(prop).toString();
                     }
+                    json.getFromJsonObject(prop);
                 }
-            } else {
-                if (i == properties.length-1){
-                    return json.getFromJsonObject(prop).toString();
-                }
-                json.getFromJsonObject(prop);
             }
-        }
-        return json;
+            return json;
+        } catch (Exception e){
+        throw new JsonFormatException("Wrong format of json String or wrong property path. ",e);
+    }
     }
 
     public class JsonOA{

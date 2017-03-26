@@ -54,9 +54,8 @@ public class AppTest
             storage.start("");
 
             Thread.sleep(3000);
-
-
-            //storage.subscribe("tasks");
+            storage.execute(new TransactionRunnableQuery());
+            storage.subscribe("tasks");
 
             /*Object[] methodArgs = new Object[1];
             methodArgs[0] = "Pridany cez DDP 2";*/
@@ -66,11 +65,11 @@ public class AppTest
             //wait for work to finish (and see logs in console)
             //Thread.sleep(3000);
             //Thread.sleep(12000);
-            //storage.executeLocally(new TransactionRunnableQuery());
+
             //storage.executeLocallyAsync(new TransactionRunnableExecutions());
 
             //Thread.sleep(300000);
-            //Thread.sleep(20000);
+            Thread.sleep(20000);
 
         } catch (LocalStorageException | InterruptedException e) {
             e.printStackTrace();

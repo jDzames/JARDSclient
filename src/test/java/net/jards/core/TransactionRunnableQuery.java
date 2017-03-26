@@ -9,9 +9,9 @@ public class TransactionRunnableQuery implements TransactionRunnable {
     @Override
     public void run(ExecutionContext context, Transaction transaction, Object... arguments) {
 
-        Collection collection = context.getCollection("LocalTest");
+        Collection collection = context.getCollection("tasks");
         try {
-            ResultSet resultSet = collection.find(new Predicate.Equals("not_example","ok"), null);
+            ResultSet resultSet = collection.find(null, null);
             //System.out.println(resultSet.getDocuments().toString());
 
             resultSet.addActualDocumentsListener(new ResultSet.ActualDocumentsListener() {

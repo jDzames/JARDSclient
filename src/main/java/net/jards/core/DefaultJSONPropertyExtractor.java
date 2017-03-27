@@ -42,7 +42,12 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
      */
     @Override
     public Object extractPropertyValue(String jsonString, String propertyPath) throws JsonFormatException {
-        JsonOA jsonOA =new JsonOA(jsonString);
+        JsonOA jsonOA;
+        try{
+            jsonOA =new JsonOA(jsonString);
+        } catch (Exception e){
+            throw new JsonFormatException("Wrong format of json String.",e);
+        }
         return extractPropertyValueFromJson(jsonOA, propertyPath);
     }
 

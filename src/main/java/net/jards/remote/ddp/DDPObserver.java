@@ -111,12 +111,12 @@ public class DDPObserver extends DDPListener implements Observer {
                 String collectionName = (String) jsonFields.get(DdpMessageField.COLLECTION);
                 String id = (String) jsonFields.get(DdpMessageField.ID);
                 Map<String, Object> jsonMap = (Map<String, Object>) jsonFields.get(DdpMessageField.FIELDS);
-                String jsonData;
-                if (jsonMap.containsKey("text")){
+                String jsonData = gson.toJson(jsonMap);
+                /*if (jsonMap.containsKey("text")){
                     jsonData = (String)jsonMap.get("text");
                 } else {
                     jsonData = gson.toJson(jsonMap);
-                }
+                }*/
                 RemoteDocumentChange documentChange = new RemoteDocumentChange(RemoteDocumentChange.ChangeType.UPDATE,
                         collectionName, id, jsonData);
                 ddpRemoteStorage.changesReceived(new RemoteDocumentChange[]{documentChange});

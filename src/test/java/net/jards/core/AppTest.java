@@ -37,8 +37,6 @@ public class AppTest
 
     public void testApp()
     {
-
-
         StorageSetup storageSetup = new StorageSetup();
         storageSetup.setPrefix("tests_");
         storageSetup.addCollectionSetup("LocalTest", true, "example");
@@ -63,13 +61,13 @@ public class AppTest
 
 
             //wait for work to finish (and see logs in console)
-            //Thread.sleep(3000);
+            Thread.sleep(3000);
             //Thread.sleep(12000);
 
             //storage.executeLocallyAsync(new TransactionRunnableExecutions());
 
             //Thread.sleep(300000);
-            Thread.sleep(20000);
+            //Thread.sleep(20000);
 
         } catch (LocalStorageException | InterruptedException e) {
             e.printStackTrace();

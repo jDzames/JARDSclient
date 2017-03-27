@@ -33,6 +33,12 @@ public class Document {
 	/**
 	 * Constructs a document that is not associated with any collection.
 	 */
+    Document() {
+        this.collection = null;
+        id = null;
+        jsonData = "";
+    }
+
 	public Document(String content) {
 		this.collection = null;
 		id = null;

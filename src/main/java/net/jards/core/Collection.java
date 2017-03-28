@@ -90,7 +90,7 @@ public class Collection {
         }
         ResultSet resultSet = new ResultSet(predicate, this, resultOptions);
 
-        //add result set to opened result sets ins torage
+        //add result set to opened result sets in storage
         storage.addOpenedResultSet(resultSet);
 
         //add initial data

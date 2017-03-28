@@ -233,6 +233,7 @@ public class ResultSet {
         //remove this change
         overlaysWithChanges.remove(changes);
         //recreate lastChanges
+        lastChanges = new LinkedHashMap<>();
         for(Map.Entry<DocumentChanges, DocumentChanges> entry : overlaysWithChanges.entrySet()){
             updateOverlayChangesWithOverlay(entry.getKey(), entry.getValue());
         }

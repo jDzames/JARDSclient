@@ -51,20 +51,23 @@ public class AppTest
 
             storage.start("");
 
-            Thread.sleep(3000);
-            storage.execute(new TransactionRunnableQuery());
             storage.subscribe("tasks");
+            storage.registerSpeculativeMethod("tasks.insert", new TransactionRunnableExecutions());
+
+            storage.executeAsync(new TransactionRunnableQuery());
+
+            Thread.sleep(3000);
 
             /*Object[] methodArgs = new Object[1];
             methodArgs[0] = "Pridany cez DDP 2";*/
-            //storage.callAsync("tasks.insert", "Added through DDP 7");
+            //storage.callAsync("tasks.insert", "{\"text\":\"for test\"}");
 
 
             //wait for work to finish (and see logs in console)
-            Thread.sleep(3000);
+            //Thread.sleep(5000);
             //Thread.sleep(12000);
 
-            //storage.executeLocallyAsync(new TransactionRunnableExecutions());
+            //storage.executeAsync(new TransactionRunnableExecutions());
 
             //Thread.sleep(300000);
             //Thread.sleep(20000);

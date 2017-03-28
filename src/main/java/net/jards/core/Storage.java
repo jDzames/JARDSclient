@@ -342,30 +342,43 @@ public class Storage {
     }
 
     private void applyListOfChangesOnOpenedResultSets(List<DocumentChanges> documentChanges) {
-        openedResultSets.removeIf(ResultSet::isClosed);
-        for (ResultSet resultSet:openedResultSets){
-            documentChanges.forEach(resultSet::applyChanges);
+        synchronized (openedResultSets){
+            openedResultSets.removeIf(ResultSet::isClosed);
+            for (ResultSet resultSet:openedResultSets){
+                documentChanges.forEach(resultSet::applyChanges);
+            }
+            openedResultSets.notify();
         }
+
     }
 
     private void applyChangesOnOpenedResultSets(DocumentChanges documentChanges) {
-        openedResultSets.removeIf(ResultSet::isClosed);
-        for (ResultSet resultSet:openedResultSets){
-            resultSet.applyChanges(documentChanges);
+        synchronized (openedResultSets){
+            openedResultSets.removeIf(ResultSet::isClosed);
+            for (ResultSet resultSet:openedResultSets){
+                resultSet.applyChanges(documentChanges);
+            }
+            openedResultSets.notify();
         }
     }
 
     private void addOverlayToOpenedResultSets(DocumentChanges documentChanges){
-        openedResultSets.removeIf(ResultSet::isClosed);
-        for (ResultSet resultSet:openedResultSets){
-            resultSet.addOverlayWithChanges(documentChanges);
+        synchronized (openedResultSets){
+            openedResultSets.removeIf(ResultSet::isClosed);
+            for (ResultSet resultSet:openedResultSets){
+                resultSet.addOverlayWithChanges(documentChanges);
+            }
+            openedResultSets.notify();
         }
     }
 
     private void removeOverlayOfOpenedResultSets(DocumentChanges documentChanges){
-        openedResultSets.removeIf(ResultSet::isClosed);
-        for (ResultSet resultSet:openedResultSets){
-            resultSet.removeOverlayWithChanges(documentChanges);
+        synchronized (openedResultSets){
+            openedResultSets.removeIf(ResultSet::isClosed);
+            for (ResultSet resultSet:openedResultSets){
+                resultSet.removeOverlayWithChanges(documentChanges);
+            }
+            openedResultSets.notify();
         }
     }
 
@@ -398,7 +411,7 @@ public class Storage {
      * @param collectionName name of collection
      * @return selected collection or new created (not local) collection
      */
-    public Collection getOrCreateCollection(String collectionName) throws LocalStorageException {
+    Collection getOrCreateCollection(String collectionName) throws LocalStorageException {
         CollectionSetup collectionSetup = localStorage.getCollectionSetup(collectionName);
         if (collectionSetup == null){
             //collectionSetup = new CollectionSetup(localStorage.getPrefix(), collectionName, false);

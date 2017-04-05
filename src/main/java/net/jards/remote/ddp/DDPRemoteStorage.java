@@ -21,6 +21,9 @@ import java.util.UUID;
  */
 public class DDPRemoteStorage extends RemoteStorage {
 
+
+
+
 	private final String serverAddress;
 	private final int serverPort;
     private final DDPConnectionSettings.LoginType loginType;
@@ -58,7 +61,7 @@ public class DDPRemoteStorage extends RemoteStorage {
         executeMethodsCount = new HashMap<>();
         session = null;
 
-        setReadyForConnect();
+        //setReadyForConnect();
 	}
 
     /**
@@ -104,11 +107,10 @@ public class DDPRemoteStorage extends RemoteStorage {
         try {
             if (ddpClient==null){
                 setReadyForConnect();
-                ddpClient.connect();
+                //ddpClient.connect();
             } else {
                 if (!ddpClient.getState().equals(DDPClient.CONNSTATE.Connected)){
                     try {
-                        ddpClient.disconnect();
                         setReadyForConnect();
                         ddpClient.connect();
                     } catch (Exception e){}
@@ -179,14 +181,20 @@ public class DDPRemoteStorage extends RemoteStorage {
      * Call method on server
      * @param method method name
      * @param arguments method parametres
-     * @param uuidSeed seed for algorithm which generates id of documents on server (to get same id on server and client)
+     * @param idSeed seed for algorithm which generates id of documents on server (to get same id on server and client)
      * @param request Storage-made request for this method
      */
     @Override
-	protected void call(String method, Object[] arguments, String uuidSeed, ExecutionRequest request) {
-		//TODO  seed
-        //check method name and arguments with request or no? or if request is not null?
-        int methodId = ddpClient.call(method, arguments);
+	protected void call(String method, Object[] arguments, String idSeed, ExecutionRequest request) {
+        Object[] argsWithSeed;
+        if (arguments != null){
+            argsWithSeed = new Object[arguments.length+1];
+            System.arraycopy(arguments,0, argsWithSeed, 0, arguments.length);
+        } else {
+            argsWithSeed = new Object[1];
+        }
+        argsWithSeed[argsWithSeed.length-1] = idSeed;
+        int methodId = ddpClient.call(method, argsWithSeed);
         request.setRemoteCallsId(methodId);
 		methods.put(methodId, request);
 		//ddpObserver.addMethod(methodId, method);

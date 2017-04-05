@@ -25,7 +25,7 @@ public class TransactionRunnableExecutions implements  TransactionRunnable {
             //d = collection.update(d, transaction);
             //System.out.println(d.getJsonData());
             //collection.remove(d, transaction);
-
+            System.out.println("        id       "+d.getId());
         } catch (LocalStorageException e) {
             e.printStackTrace();
         }

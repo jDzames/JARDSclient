@@ -110,7 +110,8 @@ public class Storage {
                         try {
                             //try to connect
                             remoteStorage.start(session);
-                            connectionLock.wait();
+                            //connectionLock.wait();
+                            Thread.sleep(100);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -538,8 +539,8 @@ public class Storage {
 		// ked sa call vykona, transakcia sa vyhodi zo zoznamu transakcii (jej
 		// zmeny sa ignoruju).
 
-
-        String seed = "";
+        //TODO generate random seed
+        String seed = UUID.randomUUID().toString();
         IdGenerator idGenerator = remoteStorage.getIdGenerator(seed);
 		Transaction transaction = new Transaction(this, idGenerator);
         transaction.setSpeculation(true);
@@ -591,15 +592,15 @@ public class Storage {
         localStorage.invalidateRemoteCollections();
 
         requestsLocalHandlingThread = new RequestsLocalHandlingThread();
-        new Thread(requestsLocalHandlingThread).start();
+        requestsLocalHandlingThread.start();
         //TODO read and return queues from database in localStorage start (unconfirmed and pending work)
 
         //run thread for remote work and start remotes storage
         requestsRemoteHandlingThread = new RequestsRemoteHandlingThread();
-        new Thread(requestsRemoteHandlingThread).start();
+        requestsRemoteHandlingThread.start();
 
         //start with session
-		remoteStorage.start(sessionState);
+		//remoteStorage.start(sessionState);
 	}
 
 	/**

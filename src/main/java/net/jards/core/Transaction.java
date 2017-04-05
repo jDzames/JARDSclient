@@ -27,7 +27,7 @@ public class Transaction {
 
         // createDocument document
         String jsonData = document.getJsonData();
-        document = new Document(collection, idGenerator.getId().toString());
+        document = new Document(collection, idGenerator.getId());
         document.setJsonData(jsonData);
 
         //add to local changes

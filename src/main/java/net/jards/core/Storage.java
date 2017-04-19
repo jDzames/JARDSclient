@@ -585,11 +585,13 @@ public class Storage {
         running = true;
         disconnectedFromRemoteStorage = true;
 
-        //start local storage and run thread for local work (this order)
+        //start local storage and run thread for local work (in this order)
         localStorage.start();
 
-        //if no session, invalidate (reset) all remote collections (if they are empty or with data, new session)
-        localStorage.invalidateRemoteCollections();
+        //if no session, invalidate (reset) all remote collections (if they are empty or with data, new session has started)
+        if(sessionState == null || sessionState.length() == 0){
+            localStorage.invalidateRemoteCollections();
+        }
 
         requestsLocalHandlingThread = new RequestsLocalHandlingThread();
         requestsLocalHandlingThread.start();
@@ -605,8 +607,9 @@ public class Storage {
 
 	/**
 	 * Stops the self-synchronizing storage.
-	 */
-	public void stop() {
+     * @return session string
+     */
+	public String stop() {
         //wake up threads and stop them
         running = false;
         disconnectedFromRemoteStorage = false;
@@ -617,17 +620,11 @@ public class Storage {
             pendingRequestsRemote.notify();
         }
         //save state and queues with work
-		String state = remoteStorage.getSessionState();
+		String sessionState = remoteStorage.getSessionState();
 		remoteStorage.stop();
-        //TODO save all queues here
+        //TODO save all queues here ...
         localStorage.stop(unconfirmedRequestsLocal);
+        return sessionState;
 	}
 }
 
-/*
-*
-* cally - vola metodu, z tych co su v mape
-* pridaju do pendingRequestsLocal - v tom handleri sa to tam aj zavola?
-* ze som skoncil ako zistim
-*
-* */

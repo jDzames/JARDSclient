@@ -13,7 +13,7 @@ public class TransactionRunnableQuery implements TransactionRunnable {
         try {
             ResultSet resultSet = collection.find(null, null);
             //System.out.println(resultSet.getDocuments().toString());
-
+            System.out.println("query");
             resultSet.addActualDocumentsListener(new ResultSet.ActualDocumentsListener() {
                 @Override
                 public void resultChanged(DocumentList actualDocuments) {

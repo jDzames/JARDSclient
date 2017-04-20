@@ -16,6 +16,7 @@ public class TransactionRunnableExecutions implements  TransactionRunnable {
         Document d2 = new Document();
         d2.setJsonData("{example:six,not_example:ok}");//"{test1:Added through StoragesTogether}");*/
 
+        System.out.println("executing speculation");
         Collection collection = context.getCollection("tasks");
         try {
             d = collection.create(d, transaction);

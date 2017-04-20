@@ -167,6 +167,7 @@ public class ResultSet {
 
     public void addActualDocumentsListener(ActualDocumentsListener listener) {
         this.actualDocumentsListeners.add(listener);
+        listener.resultChanged(new DocumentList(finalDocuments));
     }
 
     public void removeActualDocumentsListener(ActualDocumentsListener listener) {
@@ -179,6 +180,8 @@ public class ResultSet {
             if (matchDocument(document)){
                 newResult = true;
                 sourceDocuments.add(document);
+                //remove document from overlays
+                removeFromOverlays(document);
             }
         }
         //update documents..
@@ -190,6 +193,8 @@ public class ResultSet {
                         sourceDocuments.set(i, document);
                     }
                 }
+                //remove document from overlays
+                removeFromOverlays(document);
             }
         }
         //remove documents
@@ -197,10 +202,21 @@ public class ResultSet {
             if (matchDocument(document)){
                 newResult = true;
                 sourceDocuments.removeIf(doc -> doc.getId().equals(document.getId()));
+                //remove document from overlays
+                removeFromOverlays(document);
             }
         }
+
         //update final documents
         updateFinalDocuments();
+    }
+
+    //removes this document from last changes and from all overlays
+    private void removeFromOverlays(Document document){
+        for (DocumentChanges overlay:overlaysWithChanges.values()) {
+            overlay.removeDocumentFromChanges(document);
+        }
+        lastChanges.remove(document.getId());
     }
 
     void addOverlayWithChanges(DocumentChanges changes){
@@ -218,7 +234,7 @@ public class ResultSet {
         }
         for (Document document:changes.getRemovedDocuments()){
             if (matchDocument(document)){
-                relevantChanges.removeDocument(document);
+                relevantChanges.addRemovedDocument(document);
             }
         }
         //add these changes to overlay
@@ -275,6 +291,16 @@ public class ResultSet {
         }
 
         return predicate.match(document);
+    }
+
+    public Collection getCollection() {
+        return collection;
+    }
+
+    public void invalidateSourceDocuments() {
+        this.sourceDocuments = new ArrayList<>();
+        newResult = true;
+        updateFinalDocuments();
     }
 
 }

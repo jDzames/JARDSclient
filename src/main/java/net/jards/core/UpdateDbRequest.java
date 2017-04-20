@@ -6,12 +6,27 @@ package net.jards.core;
 public class UpdateDbRequest {
 
     private DocumentChanges documentChanges;
+    private String collectionName;
+
+    private boolean invalidateCollection = false;
 
     public UpdateDbRequest() {
     }
 
-    public UpdateDbRequest(DocumentChanges documentChanges) {
-        this.documentChanges = documentChanges;
+    public String getCollectionName() {
+        return collectionName;
+    }
+
+    public void setCollectionName(String collectionName) {
+        this.collectionName = collectionName;
+    }
+
+    public void setInvalidateCollection(boolean invalidateCollection) {
+        this.invalidateCollection = invalidateCollection;
+    }
+
+    public boolean isInvalidateCollection() {
+        return invalidateCollection;
     }
 
     public DocumentChanges getDocumentChanges() {

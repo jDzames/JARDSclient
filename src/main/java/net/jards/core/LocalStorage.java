@@ -181,7 +181,7 @@ public abstract class LocalStorage {
 	 * @throws LocalStorageException
 	 *             throws exception if any of write updates fails
 	 */
-	protected abstract void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges)
+	protected abstract void applyDocumentChanges(DocumentChanges remoteDocumentChanges)
 			throws LocalStorageException;
 
 	protected abstract List<Map<String, String>> find(String collectionName, Predicate p, ResultOptions options) throws LocalStorageException;

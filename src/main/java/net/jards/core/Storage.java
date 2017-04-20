@@ -25,41 +25,45 @@ public class Storage {
 
 			while (running) {
 
-                List<DocumentChanges> remoteDocumentChanges = new LinkedList<>();
                 synchronized (remoteChanges) {
                     if (!remoteChanges.isEmpty()){
                         while (!remoteChanges.isEmpty()){
                             //add all of document changes that came from server (in order)
                             UpdateDbRequest updateDbRequest = remoteChanges.poll();
-                            remoteDocumentChanges.add(updateDbRequest.getDocumentChanges());
+                            try {
+                                if (updateDbRequest.isInvalidateCollection()){
+                                    String collection = updateDbRequest.getCollectionName();
+                                    invalidateCollection(collection);
+                                    invalidateOpenedResultSets(collection);
+                                } else {
+                                    DocumentChanges changes = updateDbRequest.getDocumentChanges();
+                                    localStorage.applyDocumentChanges(changes);
+                                    applyChangesOnUnconfirmedRequests(changes);
+                                    applyChangesOnOpenedResultSets(changes);
+                                }
+                            } catch (LocalStorageException e) {
+                                System.out.println("ERROR: " + e.toString());
+                            }
                         }
                     }
                 }
-                if (!remoteDocumentChanges.isEmpty()){
-                    // write all changes
-                    try {
-                        localStorage.applyDocumentChanges(remoteDocumentChanges);
-                    } catch (LocalStorageException e) {
-                        System.out.println("ERROR: " + e.toString());
-                    }
-                    applyListOfChangesOnOpenedResultSets(remoteDocumentChanges);
-                }
 
-
-				ExecutionRequest executionRequest;
+				ExecutionRequest executionRequest = null;
 				synchronized (pendingRequestsLocal) {
-                    while (pendingRequestsLocal.isEmpty() && running){
+                    if (pendingRequestsLocal.isEmpty() /*&& running*/){
                         try {
                             pendingRequestsLocal.wait();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
+                    } else{
+                        executionRequest = pendingRequestsLocal.poll();
                     }
-                    executionRequest = pendingRequestsLocal.poll();
 				}
 				if (executionRequest == null){
 					continue;
 				}
+
 				ExecutionContext context = executionRequest.getContext();
 				Transaction transaction = executionRequest.getTransaction();
 				Object[] arguments = executionRequest.getAttributes();
@@ -73,6 +77,7 @@ public class Storage {
 				if (executionRequest.isExecuteLocally()){
                     //only local execution, just execute (that was done already)
                     DocumentChanges documentChanges = transaction.getLocalChanges();
+                    applyChangesOnUnconfirmedRequests(documentChanges);
                     applyChangesOnOpenedResultSets(documentChanges);
                     executionRequest.ready();
 				} else if (executionRequest.isExecute()){
@@ -83,6 +88,7 @@ public class Storage {
                         pendingRequestsRemote.offer(executionRequest);
                         pendingRequestsRemote.notify();
                     }
+                    applyChangesOnUnconfirmedRequests(documentChanges);
                     applyChangesOnOpenedResultSets(documentChanges);
                     executionRequest.ready();
                 } else if (executionRequest.isCall()){
@@ -94,6 +100,7 @@ public class Storage {
                         unconfirmedRequestsLocal.notify();
                     }
                 }
+
 			}
 		}
     }
@@ -111,7 +118,8 @@ public class Storage {
                             //try to connect
                             remoteStorage.start(session);
                             //connectionLock.wait();
-                            Thread.sleep(100);
+                            Thread.sleep(300);
+                            System.out.println("trying to connect");
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -273,11 +281,12 @@ public class Storage {
                     } else if (change.getType() == UPDATE){
                         documentChanges.updateDocument(document);
                     } else if (change.getType() == REMOVE){
-                        documentChanges.removeDocument(document);
+                        documentChanges.addRemovedDocument(document);
                     }
                 }
                 //add changes to updateDocument db request and offer it to queue
-                UpdateDbRequest updateDbRequest = new UpdateDbRequest(documentChanges);
+                UpdateDbRequest updateDbRequest = new UpdateDbRequest();
+                updateDbRequest.setDocumentChanges(documentChanges);
                 synchronized (remoteChanges){
                     remoteChanges.offer(updateDbRequest);
                     remoteChanges.notify();
@@ -289,7 +298,7 @@ public class Storage {
 			}
 
 			public void connectionChanged(Connection connection) {
-                System.out.println("CONNECTION CHANGED: "+connection.getState());
+                //System.out.println("CONNECTION CHANGED: "+connection.getState());
 
                 if (connection.getState().equals(Connected)){
                     if (remoteLoginType != DemandLogin){
@@ -318,21 +327,53 @@ public class Storage {
 
             @Override
             public void onError(RemoteStorageError error) {
-                System.out.println("ERROR! source: "+error.source()+", message: "+error.message());
+                //System.out.println("ERROR! source: "+error.source()+", message: "+error.message());
             }
 
 			public void collectionInvalidated(String collection) throws LocalStorageException {
-                if (collection == null || "".equals(collection)){
-                    //reset all collections (new session on remote storage)
-                    localStorage.invalidateRemoteCollections();
-                } else {
-                    //reset this collection
-                    CollectionSetup collectionSetup = localStorage.getCollectionSetup(collection);
-                    localStorage.removeCollection(collectionSetup);
-                    localStorage.addCollection(collectionSetup);
+                UpdateDbRequest request = new UpdateDbRequest();
+                request.setCollectionName(collection);
+                request.setInvalidateCollection(true);
+                synchronized (remoteChanges){
+                    remoteChanges.offer(request);
+                    remoteChanges.notify();
+                }
+                synchronized (pendingRequestsLocal){
+                    pendingRequestsLocal.offer(null);
+                    pendingRequestsLocal.notify();
                 }
 			}
 		});
+    }
+
+    private void invalidateCollection(String collection) throws LocalStorageException {
+        if (collection == null || "".equals(collection)){
+            //reset all collections (new session on remote storage)
+            localStorage.invalidateRemoteCollections();
+        } else {
+            //reset this collection
+            CollectionSetup collectionSetup = localStorage.getCollectionSetup(collection);
+            localStorage.removeCollection(collectionSetup);
+            localStorage.addCollection(collectionSetup);
+        }
+    }
+
+    private void applyListOfChangesOnUnconfirmedRequests(List<DocumentChanges> documentChanges) {
+        synchronized (unconfirmedRequestsLocal){
+            for (ExecutionRequest request:unconfirmedRequestsLocal){
+                request.getTransaction().getLocalChanges().removeListOfChangesFromChanges(documentChanges);
+            }
+            unconfirmedRequestsLocal.notify();
+        }
+    }
+
+    private void applyChangesOnUnconfirmedRequests(DocumentChanges documentChanges) {
+        synchronized (unconfirmedRequestsLocal){
+            for (ExecutionRequest request:unconfirmedRequestsLocal){
+                request.getTransaction().getLocalChanges().removeChangesFromChanges(documentChanges);
+            }
+            unconfirmedRequestsLocal.notify();
+        }
     }
 
     void addOpenedResultSet(ResultSet resultSet) {
@@ -358,6 +399,19 @@ public class Storage {
             openedResultSets.removeIf(ResultSet::isClosed);
             for (ResultSet resultSet:openedResultSets){
                 resultSet.applyChanges(documentChanges);
+            }
+            openedResultSets.notify();
+        }
+    }
+
+    private void invalidateOpenedResultSets(String collection){
+        synchronized (openedResultSets){
+            openedResultSets.removeIf(ResultSet::isClosed);
+            for (ResultSet resultSet:openedResultSets){
+                if (collection==null || collection.length()==0 ||
+                        resultSet.getCollection().equals(collection)){
+                    resultSet.invalidateSourceDocuments();
+                }
             }
             openedResultSets.notify();
         }

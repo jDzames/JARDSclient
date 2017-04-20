@@ -84,7 +84,7 @@ public class Transaction {
         // removing document
 
         //add to removed documents
-        localChanges.removeDocument(document);
+        localChanges.addRemovedDocument(document);
 
         // whats situation...
         if (local){

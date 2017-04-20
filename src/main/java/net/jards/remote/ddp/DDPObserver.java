@@ -49,7 +49,7 @@ public class DDPObserver extends DDPListener implements Observer {
      */
     @SuppressWarnings("unchecked")
     public void update(Observable client, Object msg) {
-        System.out.println("----- MESSAGE full : "+msg);
+        //System.out.println("----- MESSAGE full : "+msg);
         if (msg instanceof Map<?, ?>) {
             Map<String, Object> jsonFields = (Map<String, Object>) msg;
             // handle msg types for DDP server->client msgs: https://github.com/meteor/meteor/blob/master/packages/livedata/DDP.md

@@ -41,6 +41,7 @@ public class DDPRemoteStorage extends RemoteStorage {
 	private final Map<Integer, ExecutionRequest> methods;
     private final Map<Integer, Integer> executeMethodsCount;
 
+    private boolean systemWasConnected = false;
 
     /**
      * Creates DDPRemoteStorage with given parameters.
@@ -107,13 +108,11 @@ public class DDPRemoteStorage extends RemoteStorage {
         try {
             if (ddpClient==null){
                 setReadyForConnect();
-                //ddpClient.connect();
+                ddpClient.connect();
             } else {
                 if (!ddpClient.getState().equals(DDPClient.CONNSTATE.Connected)){
-                    try {
-                        setReadyForConnect();
-                        ddpClient.connect();
-                    } catch (Exception e){}
+                    setReadyForConnect();
+                    ddpClient.connect();
                 }
             }
 
@@ -331,13 +330,24 @@ public class DDPRemoteStorage extends RemoteStorage {
             if (loginType != DDPConnectionSettings.LoginType.NoLogin){
                 login();
             }
-            //I subscribe to all subscriptions (and set their id, cause it can change)
-            subscriptions.forEach((subId, request) ->
-                request.setRemoteCallsId(ddpClient.subscribe(request.getSubscriptionName(), request.getAttributes()))
-            );
+            //I subscribe to all subscriptions (and set their id, cause it can change), if I was offline
+            if (systemWasConnected){
+                try {
+                    remoteStorageListener.collectionInvalidated(null);
+                } catch (LocalStorageException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("Subscribe sent on server after being offline");
+                subscriptions.forEach((subId, request) ->
+                        request.setRemoteCallsId(ddpClient.subscribe(request.getSubscriptionName(), request.getAttributes()))
+                );
+            }
         }
-		this.remoteStorageListener.connectionChanged(connection);
-	}
+        this.remoteStorageListener.connectionChanged(connection);
+        if (connection.getState()==Connection.STATE.Connected) {
+            systemWasConnected = true;
+        }
+    }
 
     /**
      * Called when server stops subscription. It is sent into attached RemoteStorageListener.

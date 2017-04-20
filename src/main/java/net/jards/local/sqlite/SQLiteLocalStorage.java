@@ -138,7 +138,7 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
         //create Document sql string
         StringBuilder sql = new StringBuilder()
-                .append("insert into ")
+                .append("insert or replace into ")
                 .append(getPrefix())
                 .append(collectionName)
                 .append(" values(? , ? , ? ");
@@ -258,12 +258,11 @@ public class SQLiteLocalStorage extends LocalStorage {
 
     /**
      * Applies changes to local database. Creates new collections if needed, insert new documents, updates edited and removed deleted.
-     * @param remoteDocumentChanges List of DocumentChanges. Can contain collections which does not exist in local database.
+     * @param changes List of DocumentChanges. Can contain collections which does not exist in local database.
      * @throws LocalStorageException throws exception if any of write updates fails
      */
     @Override
-    protected void applyDocumentChanges(List<DocumentChanges> remoteDocumentChanges) throws LocalStorageException {
-        for (DocumentChanges changes:remoteDocumentChanges){
+    protected void applyDocumentChanges(DocumentChanges changes) throws LocalStorageException {
             for (Document addedDocument:changes.getAddedDocuments()) {
                 String collectionName = addedDocument.getCollection().getName();
                 if (getCollectionSetup(collectionName) == null){
@@ -293,7 +292,7 @@ public class SQLiteLocalStorage extends LocalStorage {
                 }
                 this.removeDocument(collectionName, removedDocument);
             }
-        }
+
     }
 
 

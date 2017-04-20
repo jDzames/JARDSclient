@@ -69,7 +69,7 @@ public class AppTest
 
             //storage.executeAsync(new TransactionRunnableExecutions());
 
-            Thread.sleep(300000);
+            //Thread.sleep(300000);
             storage.stop();
             //Thread.sleep(20000);
 

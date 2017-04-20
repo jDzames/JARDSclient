@@ -331,7 +331,7 @@ public class DDPRemoteStorage extends RemoteStorage {
                 login();
             }
             //I subscribe to all subscriptions (and set their id, cause it can change), if I was offline
-            if (systemWasConnected){
+            if (systemWasConnected && (session == null || session.length()==0)){
                 try {
                     remoteStorageListener.collectionInvalidated(null);
                 } catch (LocalStorageException e) {

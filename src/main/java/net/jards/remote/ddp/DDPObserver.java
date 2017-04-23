@@ -25,11 +25,33 @@ import static net.jards.core.Connection.STATE;
  */
 public class DDPObserver extends DDPListener implements Observer {
 
+    public enum DDPSTATE {
+        Disconnected,
+        Connected,
+        LoggedIn,
+        Closed,
+    }
 
-    private STATE mDdpState;
+    public DDPSTATE mDdpState;
+    public String mResumeToken;
+    public String mUserId;
+    public int mErrorCode;
+    public String mErrorType;
+    public String mErrorReason;
+    public String mErrorMsg;
+    public String mErrorSource;
+    public String mSessionId;
+    public int mCloseCode;
+    public String mCloseReason;
+    public boolean mCloseFromRemote;
+    public String mReadySubscription;
+    public String mPingId;
+
+    private STATE myDdpState;
+
     private String mSession;
     private String mToken;
-    private String mUserId;
+
     //public String mPingId;
 
     //private Map<Integer, String> methods;
@@ -40,8 +62,9 @@ public class DDPObserver extends DDPListener implements Observer {
     public DDPObserver(DDPRemoteStorage ddpRemoteStorage) {
         this.ddpRemoteStorage = ddpRemoteStorage;
         //methods = new HashMap<>();
-        mDdpState = STATE.Disconnected;
+        myDdpState = STATE.Disconnected;
         gson = new Gson();
+        mDdpState = DDPSTATE.Disconnected;
     }
 
     /**
@@ -65,19 +88,26 @@ public class DDPObserver extends DDPListener implements Observer {
                 this.ddpRemoteStorage.onError(error);
             }
             if (msgtype.equals(DdpMessageType.CONNECTED)) {
+                mDdpState = DDPSTATE.Connected;
+                mSessionId = (String) jsonFields.get(DdpMessageField.SESSION);
+                //--
                 Integer code = null;
-                if (mDdpState == STATE.Disconnected || mDdpState == STATE.Closed) {
+                if (myDdpState == STATE.Disconnected || myDdpState == STATE.Closed) {
+                    System.out.println("             ------------    after disconect   --------------- ");
                     code = CONNECTED_AFTER_BEING_DISCONNECTED;
                 }
-                mDdpState = STATE.Connected;
+                myDdpState = STATE.Connected;
                 mSession = (String) jsonFields.get(DdpMessageField.SESSION);
                 this.ddpRemoteStorage.connectionChanged(new Connection(STATE.Connected, mSession, code, null, null));
             }
             if (msgtype.equals(DdpMessageType.CLOSED)) {
-                mDdpState = STATE.Closed;
-                Integer mCloseCode = Integer.parseInt(jsonFields.get(DdpMessageField.CODE).toString());
-                String mCloseReason = (String) jsonFields.get(DdpMessageField.REASON);
-                Boolean mCloseFromRemote = (Boolean) jsonFields.get(DdpMessageField.REMOTE);
+                mDdpState = DDPSTATE.Closed;
+                mCloseCode = Integer.parseInt(jsonFields.get(DdpMessageField.CODE).toString());
+                mCloseReason = (String) jsonFields.get(DdpMessageField.REASON);
+                mCloseFromRemote = (Boolean) jsonFields.get(DdpMessageField.REMOTE);
+                //--
+                myDdpState = STATE.Closed;
+
                 this.ddpRemoteStorage.connectionChanged(new Connection(STATE.Closed, null, mCloseCode, mCloseReason, mCloseFromRemote));
             }
             if (msgtype.equals(DdpMessageType.READY)) {
@@ -146,7 +176,7 @@ public class DDPObserver extends DDPListener implements Observer {
                         mToken = (String) resultFields.get("token");
                         mUserId = (String) resultFields.get("id");
                         //
-                        mDdpState = STATE.LoggedIn;
+                        myDdpState = STATE.LoggedIn;
                         ddpRemoteStorage.connectionChanged(new Connection(STATE.LoggedIn, null, null, null, null));
                     }
                 }
@@ -205,4 +235,50 @@ public class DDPObserver extends DDPListener implements Observer {
     protected void removeMethod(int methodId) {
         this.methods.remove(methodId);
     }*/
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void onResult(Map<String, Object> jsonFields) {
+        //NOTE: in normal usage, you'd add a listener per command, not a global one like this
+        // handle method data collection updated msg
+        String methodId = (String) jsonFields.get(DdpMessageField.ID);
+        if (methodId.equals("1") && jsonFields.containsKey("result")) {
+            Map<String, Object> result = (Map<String, Object>) jsonFields.get(DdpMessageField.RESULT);
+            // login method is always "1"
+            // REVIEW: is there a better way to figure out if it's a login result?
+            mResumeToken = (String) result.get("token");
+            mUserId = (String) result.get("id");
+            mDdpState = DDPSTATE.LoggedIn;
+        }
+        if (jsonFields.containsKey("error")) {
+            Map<String, Object> error = (Map<String, Object>) jsonFields.get(DdpMessageField.ERROR);
+            mErrorCode = (int) Math.round((Double)error.get("error"));
+            mErrorMsg = (String) error.get("message");
+            mErrorType = (String) error.get("errorType");
+            mErrorReason = (String) error.get("reason");
+        }
+    }
+
+    @Override
+    public void onNoSub(String id, Map<String, Object> error) {
+        if (error != null) {
+            mErrorCode = (int) Math.round((Double)error.get("error"));
+            mErrorMsg = (String) error.get("message");
+            mErrorType = (String) error.get("errorType");
+            mErrorReason = (String) error.get("reason");
+        } else {
+            // if there's no error, it just means a subscription was unsubscribed
+            mReadySubscription = null;
+        }
+    }
+
+    @Override
+    public void onReady(String id) {
+        mReadySubscription = id;
+    }
+
+    @Override
+    public void onPong(String id) {
+        mPingId = id;
+    }
 }

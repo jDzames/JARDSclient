@@ -10,6 +10,7 @@ import net.jards.errors.RemoteStorageError;
 
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -20,9 +21,6 @@ import java.util.UUID;
  * Contains DDPClient and DDPObserver from https://github.com/kenyee/java-ddp-client.
  */
 public class DDPRemoteStorage extends RemoteStorage {
-
-
-
 
 	private final String serverAddress;
 	private final int serverPort;
@@ -41,7 +39,11 @@ public class DDPRemoteStorage extends RemoteStorage {
 	private final Map<Integer, ExecutionRequest> methods;
     private final Map<Integer, Integer> executeMethodsCount;
 
+    private boolean systemIsConnected = false;
+
     private boolean systemWasConnected = false;
+    private boolean systemWasDisconnected = false;
+
     private boolean subscribed_askedForNewDataset = false;
 
     /**
@@ -106,26 +108,36 @@ public class DDPRemoteStorage extends RemoteStorage {
      */
     @Override
 	protected void start(String sessionState) {
-        subscribed_askedForNewDataset = false;
-        try {
-            if (ddpClient==null){
-                setReadyForConnect();
-                ddpClient.connect();
-            } else {
-                if (!ddpClient.getState().equals(DDPClient.CONNSTATE.Connected)){
+        systemIsConnected = false;
+        while (!systemIsConnected) {
+            try {
+                if (ddpClient==null){
                     setReadyForConnect();
                     ddpClient.connect();
+                    subscribed_askedForNewDataset = false;
+                } else {
+                    if (!ddpClient.getState().equals(DDPClient.CONNSTATE.Connected)){
+                        //setReadyForConnect();
+                        ddpClient.disconnect();
+                        Thread.sleep(500);
+                        ddpClient.connect();
+                        subscribed_askedForNewDataset = false;
+                    }
                 }
+                Thread.sleep(750);
+                if (ddpClient.getState().equals(DDPClient.CONNSTATE.Connected)){
+                    systemIsConnected = true;
+                }
+
+                //TODO session - ?
+                // https://forums.meteor.com/t/meteor-passing-session-values-from-client-to-server/5716
+                //http://stackoverflow.com/questions/30852792/meteor-passing-session-values-from-client-to-server
+                //... do it for library and sent it to them
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-            //TODO session - ?
-            // https://forums.meteor.com/t/meteor-passing-session-values-from-client-to-server/5716
-            //http://stackoverflow.com/questions/30852792/meteor-passing-session-values-from-client-to-server
-            //... do it for library and sent it to them
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+        }
 
 	}
 
@@ -147,13 +159,15 @@ public class DDPRemoteStorage extends RemoteStorage {
      */
     @Override
 	protected int subscribe(String subscriptionName, ExecutionRequest executionRequest) {
-        //if I am connected to server already, I can subscribe
-        /*if (ddpObserver.getmDdpState() == Connection.STATE.Connected ||
-                ddpObserver.getmDdpState() == Connection.STATE.LoggedIn)*/
+        if (subscriptions.containsKey(executionRequest.getRemoteCallsId())){
+            subscriptions.remove(executionRequest.getRemoteCallsId());
+        }
         subscribed_askedForNewDataset = true;
         int subId = ddpClient.subscribe(subscriptionName, executionRequest.getAttributes()); //new Object[]{});
         executionRequest.setRemoteCallsId(subId);
 		subscriptions.put(subId, executionRequest);
+
+
         return subId;
 	}
 
@@ -343,22 +357,24 @@ public class DDPRemoteStorage extends RemoteStorage {
                 login();
             }
             //I subscribe to all subscriptions (and set their id, cause it can change), if I was offline
-            if (systemWasConnected && (session == null || session.length()==0)){
+            if (systemWasConnected /*&& (session == null || session.length()==0)*/){
                 /* reset local data, new dataset coming after subscribe
                 try {
                     remoteStorageListener.collectionInvalidated(null);
                 } catch (LocalStorageException e) {
                     e.printStackTrace();
                 }*/
+                systemWasConnected = false;
                 System.out.println("Subscribe sent on server after being offline");
-                subscribed_askedForNewDataset = true;
-                subscriptions.forEach((subId, request) ->
-                        request.setRemoteCallsId(ddpClient.subscribe(request.getSubscriptionName(), request.getAttributes()))
+                Map<Integer, ExecutionRequest> subs = new LinkedHashMap<>(subscriptions);
+                subs.forEach((subId, request) ->
+                        this.subscribe(request.getSubscriptionName(), request)
                 );
             }
         }
         this.remoteStorageListener.connectionChanged(connection);
-        if (connection.getState()==Connection.STATE.Connected) {
+        //state other than connected and there are subscriptions that was used -> after reconnect subscribe again
+        if (connection.getState()!=Connection.STATE.Connected && subscriptions.size()>0) {
             systemWasConnected = true;
         }
     }

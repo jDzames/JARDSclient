@@ -118,7 +118,7 @@ public class Storage {
                             //try to connect
                             remoteStorage.start(session);
                             //connectionLock.wait();
-                            Thread.sleep(300);
+                            Thread.sleep(400);
                             //System.out.println("trying to connect");
                         } catch (InterruptedException e) {
                             e.printStackTrace();
@@ -303,19 +303,22 @@ public class Storage {
                 if (connection.getState().equals(Connected)){
                     if (remoteLoginType != DemandLogin){
                         disconnectedFromRemoteStorage = false;
-                        synchronized (connectionLock){
-                            connectionLock.notify();
+                        synchronized (pendingRequestsRemote){
+                            pendingRequestsRemote.offer(null);
+                            pendingRequestsRemote.notify();
                         }
                     }
                 } else if (connection.getState().equals(LoggedIn)){
                     disconnectedFromRemoteStorage = false;
-                    synchronized (connectionLock){
-                        connectionLock.notify();
+                    synchronized (pendingRequestsRemote){
+                        pendingRequestsRemote.offer(null);
+                        pendingRequestsRemote.notify();
                     }
                 } else if (connection.getState().equals(Closed) || connection.getState().equals(Disconnected)){
                     disconnectedFromRemoteStorage = true;
-                    synchronized (connectionLock){
-                        connectionLock.notify();
+                    synchronized (pendingRequestsRemote){
+                        pendingRequestsRemote.offer(null);
+                        pendingRequestsRemote.notify();
                     }
                 }
             }

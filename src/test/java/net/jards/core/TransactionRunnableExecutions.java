@@ -10,7 +10,7 @@ public class TransactionRunnableExecutions implements  TransactionRunnable {
     @Override
     public void run(ExecutionContext context, Transaction transaction, Object... arguments) {
         Document d = new Document();
-        d.setJsonData("{\"text\":\"for test\"}");//"{test1:Added through StoragesTogether}");
+        d.setJsonData("{\"text\":\"for seed test\"}");//"{test1:Added through StoragesTogether}");
         /*Document d1 = new Document();
         d1.setJsonData("{example:five,not_example:ok}");//"{test1:Added through StoragesTogether}");
         Document d2 = new Document();

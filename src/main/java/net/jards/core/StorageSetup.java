@@ -1,7 +1,6 @@
 package net.jards.core;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * The main configuration setup provided for Storage, LocalStorage and
@@ -15,7 +14,7 @@ public class StorageSetup {
         DemandLogin
     }
 
-    private final Map<String, CollectionSetup> localCollections = new HashMap<>();
+    private final LinkedHashMap<String, CollectionSetup> localCollections = new LinkedHashMap<>();
 
     private String prefix;
     private JSONPropertyExtractor jsonPropertyExtractor = null;
@@ -55,7 +54,7 @@ public class StorageSetup {
         localCollections.put(collectionSetup.getName(), collectionSetup);
     }
 
-    public Map<String, CollectionSetup> getLocalCollections() {
+    public LinkedHashMap<String, CollectionSetup> getLocalCollections() {
         return localCollections;
     }
 

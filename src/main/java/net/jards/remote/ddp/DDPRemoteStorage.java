@@ -42,6 +42,7 @@ public class DDPRemoteStorage extends RemoteStorage {
     private final Map<Integer, Integer> executeMethodsCount;
 
     private boolean systemWasConnected = false;
+    private boolean subscribed_askedForNewDataset = false;
 
     /**
      * Creates DDPRemoteStorage with given parameters.
@@ -105,6 +106,7 @@ public class DDPRemoteStorage extends RemoteStorage {
      */
     @Override
 	protected void start(String sessionState) {
+        subscribed_askedForNewDataset = false;
         try {
             if (ddpClient==null){
                 setReadyForConnect();
@@ -148,6 +150,7 @@ public class DDPRemoteStorage extends RemoteStorage {
         //if I am connected to server already, I can subscribe
         /*if (ddpObserver.getmDdpState() == Connection.STATE.Connected ||
                 ddpObserver.getmDdpState() == Connection.STATE.LoggedIn)*/
+        subscribed_askedForNewDataset = true;
         int subId = ddpClient.subscribe(subscriptionName, executionRequest.getAttributes()); //new Object[]{});
         executionRequest.setRemoteCallsId(subId);
 		subscriptions.put(subId, executionRequest);
@@ -305,7 +308,16 @@ public class DDPRemoteStorage extends RemoteStorage {
      * @param changes array of changes - in this situation it is array of length 1 with one added/updated/removed document
      */
     void changesReceived(RemoteDocumentChange[] changes){
-		this.remoteStorageListener.changesReceived(changes);
+		if (subscribed_askedForNewDataset){
+            //reset local data, cause new dataset is coming (we subscribed, first data came)
+            subscribed_askedForNewDataset = false;
+            try {
+                remoteStorageListener.collectionInvalidated(null);
+            } catch (LocalStorageException e) {
+                e.printStackTrace();
+            }
+        }
+        this.remoteStorageListener.changesReceived(changes);
 	}
 
     /**
@@ -332,12 +344,14 @@ public class DDPRemoteStorage extends RemoteStorage {
             }
             //I subscribe to all subscriptions (and set their id, cause it can change), if I was offline
             if (systemWasConnected && (session == null || session.length()==0)){
+                /* reset local data, new dataset coming after subscribe
                 try {
                     remoteStorageListener.collectionInvalidated(null);
                 } catch (LocalStorageException e) {
                     e.printStackTrace();
-                }
+                }*/
                 System.out.println("Subscribe sent on server after being offline");
+                subscribed_askedForNewDataset = true;
                 subscriptions.forEach((subId, request) ->
                         request.setRemoteCallsId(ddpClient.subscribe(request.getSubscriptionName(), request.getAttributes()))
                 );

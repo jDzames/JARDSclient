@@ -5,10 +5,7 @@ import net.jards.core.Predicate.Or;
 import net.jards.errors.LocalStorageException;
 import net.jards.local.sqlite.SqliteException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 
 public abstract class LocalStorage {
 
@@ -17,9 +14,9 @@ public abstract class LocalStorage {
 	}
 
 	private final String prefix;
-	private final Map<String, CollectionSetup> collections;
+	private final LinkedHashMap<String, CollectionSetup> collections;
 	private final CollectionSetup setupHashCollection;
-	private final int setupHash;
+	private final String setupHash;
 	// private final CollectionSetup setupCollection;
 	private final JSONPropertyExtractor jsonPropertyExtractor;
 
@@ -43,8 +40,16 @@ public abstract class LocalStorage {
 	/**
 	 * @return hashCode() value of collections from setup
 	 */
-	private int computeSetupHash() {
-		return collections.hashCode();
+	private String computeSetupHash() {
+        StringBuilder hash = new StringBuilder();
+        hash.append(prefix);
+        for (CollectionSetup setup:collections.values()){
+            hash.append(setup.getName()).append(setup.isLocal());
+            for (String index:setup.getOrderedIndexes()){
+                hash.append(index).append(setup.getIndexes().get(index));
+            }
+        }
+		return hash.toString();
 	}
 
 	/**
@@ -65,7 +70,7 @@ public abstract class LocalStorage {
 
 			for (CollectionSetup collection : collections.values()) {
 				this.removeCollection(collection);
-				this.addCollection(collection);
+                this.addCollection(collection);
 			}
 			Collection hashCollection = new Collection(setupHashCollection.getName(), true, null);
 			Document hashDocument = new Document(hashCollection, "0");
@@ -74,8 +79,7 @@ public abstract class LocalStorage {
 			this.addCollection(setupHashCollection);
 			this.createDocument(setupHashCollection.getName(), hashDocument);
 		} catch (SqliteException e) {
-			//
-			e.printStackTrace();
+			//e.printStackTrace();
 			throw e;
 		}
 
@@ -116,10 +120,11 @@ public abstract class LocalStorage {
 		try {
             /* query for setup_hash_collection to findOne any */
 			Map<String, String> savedSetupHashDocument = findOne(setupHashCollection.getName(), null, null);
-			int savedSetupHash = Integer.parseInt(savedSetupHashDocument.get("jsondata"));
-			// compare hashes, if same, done, if different - createDocument new
-			// collections (drop those cause prefix)
-			if (setupHash != savedSetupHash) {
+			String savedSetupHash = savedSetupHashDocument.get("jsondata");
+			// compare hashes, if same, done, if different - create new
+			// collections (drop old cause of same prefix)
+            //System.out.println("hashes: "+setupHash+" a "+savedSetupHash);
+            if (!setupHash.equals(savedSetupHash)) {
 				// fillSetupCollections(); not used
 				createCollectionsFromSetup();
 			}

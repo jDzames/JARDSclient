@@ -51,20 +51,22 @@ public class AppTest
 
             storage.start("");
 
-            storage.subscribe("tasks");
-            //storage.registerSpeculativeMethod("tasks.insert", new TransactionRunnableExecutions());
+            storage.registerSpeculativeMethod("tasks.insertWithSeed", new TransactionRunnableExecutions());
+            storage.execute(new TransactionRunnableQuery());
 
-            storage.executeAsync(new TransactionRunnableQuery());
+            Thread.sleep(3000);
+
+            //storage.subscribe("tasks");
 
             //Thread.sleep(3000);
 
             /*Object[] methodArgs = new Object[1];
             methodArgs[0] = "Pridany cez DDP 2";*/
-            //storage.callAsync("tasks.insert", "{\"text\":\"for seed test\"}");
+            //storage.call("tasks.insertWithSeed", "{\"text\":\"for seed test\"}");
 
 
             //wait for work to finish (and see logs in console)
-            Thread.sleep(4000);
+            //Thread.sleep(4000);
             //Thread.sleep(12000);
 
             //storage.executeAsync(new TransactionRunnableExecutions());

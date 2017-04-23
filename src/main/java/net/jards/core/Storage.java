@@ -119,7 +119,7 @@ public class Storage {
                             remoteStorage.start(session);
                             //connectionLock.wait();
                             Thread.sleep(300);
-                            System.out.println("trying to connect");
+                            //System.out.println("trying to connect");
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -643,9 +643,9 @@ public class Storage {
         localStorage.start();
 
         //if no session, invalidate (reset) all remote collections (if they are empty or with data, new session has started)
-        if(sessionState == null || sessionState.length() == 0){
+        /*if(sessionState == null || sessionState.length() == 0){
             localStorage.invalidateRemoteCollections();
-        }
+        }*/
 
         requestsLocalHandlingThread = new RequestsLocalHandlingThread();
         requestsLocalHandlingThread.start();

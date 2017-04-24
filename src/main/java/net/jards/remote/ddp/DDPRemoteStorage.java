@@ -95,7 +95,7 @@ public class DDPRemoteStorage extends RemoteStorage {
         try {
             ddpClient = new DDPClient(serverAddress, serverPort);
 
-            ddpObserver = new DDPObserver(this);
+            ddpObserver = new DDPObserver(this, session);
             ddpClient.addObserver(ddpObserver);
         } catch (URISyntaxException e) {
             e.printStackTrace();
@@ -129,10 +129,10 @@ public class DDPRemoteStorage extends RemoteStorage {
                     systemIsConnected = true;
                 }
 
-                //TODO session - ?
+                // session
                 // https://forums.meteor.com/t/meteor-passing-session-values-from-client-to-server/5716
                 //http://stackoverflow.com/questions/30852792/meteor-passing-session-values-from-client-to-server
-                //... do it for library and sent it to them
+                //... do it for library and sent it to them?
 
             } catch (Exception e) {
                 e.printStackTrace();

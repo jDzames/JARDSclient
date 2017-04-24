@@ -59,9 +59,12 @@ public class DDPObserver extends DDPListener implements Observer {
     private final Gson gson;
 
 
-    public DDPObserver(DDPRemoteStorage ddpRemoteStorage) {
+    public DDPObserver(DDPRemoteStorage ddpRemoteStorage, String session) {
         this.ddpRemoteStorage = ddpRemoteStorage;
-        //methods = new HashMap<>();
+        if (session!=null && !"".equals(session)){
+            mSession = session;
+            mSessionId= session;
+        }
         myDdpState = STATE.Disconnected;
         gson = new Gson();
         mDdpState = DDPSTATE.Disconnected;

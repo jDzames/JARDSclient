@@ -56,6 +56,7 @@ public class AppTest
 
             Thread.sleep(3000);
 
+            System.out.println(remoteStorage.getSessionState());
             //storage.subscribe("tasks");
 
             //Thread.sleep(3000);

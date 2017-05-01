@@ -22,28 +22,82 @@ import java.util.UUID;
  */
 public class DDPRemoteStorage extends RemoteStorage {
 
-	private final String serverAddress;
-	private final int serverPort;
+    /**
+     * server address
+     */
+    private final String serverAddress;
+    /**
+     * port on which server listens
+     */
+    private final int serverPort;
+    /**
+     * DDP login type
+     */
     private final DDPConnectionSettings.LoginType loginType;
+    /**
+     * specified token if its corresponding type
+     */
     private final String resumeToken;
+    /**
+     * specified username if its corresponding type
+     */
     private final String userName;
+    /**
+     * specified email if its corresponding type
+     */
     private final String email;
+    /**
+     * specified password
+     */
     private final String password;
+    /**
+     * last session from remote storage
+     */
     private String session;
 
+    /**
+     * DDP client that sends requests to server
+     */
     private DDPClient ddpClient;
+    /**
+     * DDP observer that listens for data from server
+     */
     private DDPObserver ddpObserver;
+    /**
+     * RemoteStorageListener that is notified about changes and information froms server
+     * and sends it to Storage
+     */
     private RemoteStorageListener remoteStorageListener;
 
-	private final Map<Integer, ExecutionRequest> subscriptions;
-	private final Map<Integer, ExecutionRequest> methods;
+    /**
+     * map of subscriptions (with subscription id as key - supports multiple subscriptions with same name)
+     */
+    private final Map<Integer, ExecutionRequest> subscriptions;
+    /**
+     * map with unconfirmed requests
+     */
+    private final Map<Integer, ExecutionRequest> methods;
+    /**
+     * map for apply changes method which sends many requests to server (one for each change),
+     * counter for those changes to know when it is done
+     */
     private final Map<Integer, Integer> executeMethodsCount;
 
+    /**
+     * true if system is connected
+     */
     private boolean systemIsConnected = false;
 
+    /**
+     * true if system was connected, and also disconnected after that
+     */
     private boolean systemWasConnected = false;
-    private boolean systemWasDisconnected = false;
+    //private boolean systemWasDisconnected = false;
 
+    /**
+     * true if subscribe was used, serves to invalidate all local collections when
+     * we get data from new subscription
+     */
     private boolean subscribed_askedForNewDataset = false;
 
     /**
@@ -69,10 +123,10 @@ public class DDPRemoteStorage extends RemoteStorage {
 	}
 
     /**
-     * Creates DDPRemoteStorage with given parametres.
+     * Creates DDPRemoteStorage with given parameters.
      * @param storageSetup with settings
-     * @param connectionSettings containing server adress, port and login information
-     * @param session String containing informations about saved session, used to continue work with server.
+     * @param connectionSettings containing server address, port and login information
+     * @param session String containing information about saved session, used to continue work with server.
      */
     public DDPRemoteStorage(StorageSetup storageSetup, DDPConnectionSettings connectionSettings, String session){
         this.serverAddress = connectionSettings.getServerAddress();
@@ -91,6 +145,9 @@ public class DDPRemoteStorage extends RemoteStorage {
         //setReadyForConnect();
     }
 
+    /**
+     * Helper method to create objects from used library.
+     */
     private void setReadyForConnect(){
         try {
             ddpClient = new DDPClient(serverAddress, serverPort);
@@ -278,6 +335,11 @@ public class DDPRemoteStorage extends RemoteStorage {
 		return this.session;
 	}
 
+    /**
+     * Provides DDP id generator with specified seed.
+     * @param seed seed for generator
+     * @return DDPIdGenerator object that can be used
+     */
     @Override
     public IdGenerator getIdGenerator(String seed) {
         return new DDPIdGenerator(seed);
@@ -427,8 +489,3 @@ public class DDPRemoteStorage extends RemoteStorage {
     }
 
 }
-
-/*
-* za tym uz je DDP Observer - v starte vytvorim
-*
-* */

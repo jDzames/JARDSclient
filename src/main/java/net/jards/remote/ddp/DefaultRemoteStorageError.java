@@ -3,7 +3,7 @@ package net.jards.remote.ddp;
 import net.jards.errors.RemoteStorageError;
 
 /**
- * Created by jDzama on 8.1.2017.
+ * Simple remote storage error class with id, message and source.
  */
 public class DefaultRemoteStorageError implements RemoteStorageError {
 

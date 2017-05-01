@@ -13,18 +13,33 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Created by jDzama on 9.3.2017.
+ * Helper class for SQLiteLocalStorage for work with predicates.
  */
 public class SQLiteQueryGenerator implements LocalStorage.PredicateFilter {
 
+    /**
+     * setup of collection that we work with
+     */
     private final CollectionSetup collectionSetup;
 
+    /**
+     * counter for prepared statement parameters
+     */
     private int paramIndex = 1;
 
+    /**
+     * Constructor with collection setup.
+     * @param collectionSetup used collection setup
+     */
     SQLiteQueryGenerator(CollectionSetup collectionSetup){
         this.collectionSetup = collectionSetup;
     }
 
+    /**
+     * Method used to help with filtering of supported predicates.
+     * @param predicate given predicate
+     * @return true for supported predicate, else false
+     */
     @Override
     public boolean isAcceptable(Predicate predicate) {
         if (predicate == null || collectionSetup == null){
@@ -34,12 +49,10 @@ public class SQLiteQueryGenerator implements LocalStorage.PredicateFilter {
         if (predicate instanceof And){
             return ((And) predicate).getSubPredicates().size() >0;
         }
-        if (predicate instanceof Or){
-            return ((Or) predicate).getSubPredicates().size() >0;
-        }
 
         if (predicate instanceof Predicate.Equals || predicate instanceof EqualProperties
-                || predicate instanceof Compare || predicate instanceof CompareProperties){
+                || predicate instanceof Compare || predicate instanceof CompareProperties
+                || predicate instanceof Or){
             for (String property : predicate.getProperties() ) {
                 if (!collectionSetup.hasIndex(property)){
                     return false;
@@ -51,6 +64,13 @@ public class SQLiteQueryGenerator implements LocalStorage.PredicateFilter {
         return false;
     }
 
+    /**
+     * Method that generates predicates and options part of statement.
+     * @param dbConnection connection to database
+     * @param p filtering predicate
+     * @param resultOptions specified options
+     * @return PreparedStatement object
+     */
     PreparedStatement generateFilterStatement(Connection dbConnection, Predicate p, ResultOptions resultOptions) {
         try{
             StringBuilder sql = new StringBuilder()
@@ -86,6 +106,11 @@ public class SQLiteQueryGenerator implements LocalStorage.PredicateFilter {
         }
     }
 
+    /**
+     * Method that creates predicates part of sql string.
+     * @param p given predicate
+     * @return StringBuilder with built sql string for predicates
+     */
     private StringBuilder createPredicatesSql(Predicate p){
         StringBuilder sqlPart = new StringBuilder();
         sqlPart.append(" where ");
@@ -151,6 +176,12 @@ public class SQLiteQueryGenerator implements LocalStorage.PredicateFilter {
         return sqlPart;
     }
 
+    /**
+     * Recursive function that fills parameters from predicate in statement.
+     * @param p used predicate
+     * @param statement statement which parameters will be filled
+     * @throws SQLException throws exception if there is problem with statement parameters
+     */
     void addPredicatesParamaters(Predicate p, PreparedStatement statement) throws SQLException {
         if (p instanceof Predicate.Equals){
             statement.setString(paramIndex, String.valueOf(((Predicate.Equals)p).getValue()));

@@ -8,16 +8,35 @@ import java.sql.*;
 import java.sql.ResultSet;
 import java.util.*;
 
+/**
+ * Implementation of LocalStorage using SQLite as local database.
+ * Supports indexes and predicates that use indexed fields.
+ */
 public class SQLiteLocalStorage extends LocalStorage {
 
+    /**
+     * Java sql connection, used to connect to database.
+     */
     private Connection connection;
+    /**
+     * database address
+     */
     private final String localDbAddress; //"jdbc:sqlite:test.db"
 
-    public SQLiteLocalStorage(StorageSetup storageSetup, String databaseConnection) {
+    /**
+     * Constructor with StorageSetup and database address.
+     * @param storageSetup setup of collection with prefix, collections and indexes
+     * @param databaseAddress address used to connect to database
+     */
+    public SQLiteLocalStorage(StorageSetup storageSetup, String databaseAddress) {
         super(storageSetup);
-        localDbAddress = databaseConnection;
+        localDbAddress = databaseAddress;
     }
 
+    /**
+     * Connects to database. Helper method.
+     * @throws SqliteException throws exception if there is problem to connect to database
+     */
     @Override
     protected void connectDB() throws SqliteException {
         connection = null;
@@ -33,6 +52,11 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
+    /**
+     * Adds collection to database (creates table).
+     * @param collection collection to add
+     * @throws SqliteException throws exception if there is problem with writes to database
+     */
     @Override
     protected void addCollection(CollectionSetup collection) throws SqliteException {
         connectDB();
@@ -82,6 +106,11 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
+    /**
+     * Removes collection (drops table) froms torage
+     * @param collection collection to remove
+     * @throws SqliteException throws exception if there is problem with writes to database
+     */
     @Override
     protected void removeCollection(CollectionSetup collection) throws SqliteException {
         connectDB();
@@ -99,6 +128,13 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
+    /**
+     * Helper method for creating documents that extracts values for indexes used by specified collection.
+     * @param collectionName name of collection
+     * @param jsonData data/content of documen
+     * @return list of values of indexed fields
+     * @throws SqliteException throws exception if there is problem with writes to database
+     */
     private List<String> getIndexesValues(String collectionName, String jsonData) throws SqliteException {
         //set indexes part of createDocument sql string
         CollectionSetup collectionSetup = getCollectionSetup(collectionName);
@@ -124,6 +160,13 @@ public class SQLiteLocalStorage extends LocalStorage {
         return orderedIndexesValues;
     }
 
+    /**
+     * Writes/inserts document to database using indexes for document's collection.
+     * @param collectionName name of collection for document
+     * @param document       document to create write to database)
+     * @return id of document
+     * @throws SqliteException throws exception if there is problem with writes to database
+     */
     @Override
     protected String createDocument(String collectionName, Document document) throws SqliteException {
         //connect
@@ -172,6 +215,13 @@ public class SQLiteLocalStorage extends LocalStorage {
         return document.getId();
     }
 
+    /**
+     * Writes update of document into database.
+     * @param collectionName name of collection to which document belongs
+     * @param document       document you want to update (original id, changed content)
+     * @return id of updated document
+     * @throws SqliteException throws exception if there is problem with writes to database
+     */
     @Override
     protected String updateDocument(String collectionName, Document document) throws SqliteException {
         connectDB();
@@ -220,6 +270,13 @@ public class SQLiteLocalStorage extends LocalStorage {
         return document.getId();
     }
 
+    /**
+     * Removes/deletes document from database.
+     * @param collectionName name of collection where selected document belongs
+     * @param document       document to remove
+     * @return true if document was deleted successfully
+     * @throws SqliteException throws exception if there is problem with writes to database
+     */
     @Override
     protected boolean removeDocument(String collectionName, Document document) throws SqliteException {
         connectDB();
@@ -296,17 +353,33 @@ public class SQLiteLocalStorage extends LocalStorage {
     }
 
 
+    /**
+     * Starts local storage work (nothing needed in this implementation).
+     * @return saved requests (not implemented yet).
+     */
     @Override
     protected List<ExecutionRequest> startLocalStorage() {
         return null;
     }
 
+    /**
+     * Stops local storage work (nothing needed in this implementation).
+     * @param unconfirmedRequests requests to save (pending requests should be added too probably)
+     */
     @Override
     protected void stopLocalStorage(Queue<ExecutionRequest> unconfirmedRequests) {
 
     }
 
 
+    /**
+     * Finds all documents/table rows for specified predicate.
+     * @param collectionName name of collection
+     * @param p              predicate to filter result
+     * @param options        options for result (ie. order...)
+     * @return list with documents (in map representation)
+     * @throws SqliteException throws exception if there is problem with reading database
+     */
     @Override
     protected List<Map<String, String>> find(String collectionName, Predicate p, ResultOptions options) throws SqliteException {
         connectDB();
@@ -327,12 +400,7 @@ public class SQLiteLocalStorage extends LocalStorage {
             Predicate supportedPredicate = LocalStorage.createFilteringPredicate(p, new PredicateFilter() {
                 @Override
                 public boolean isAcceptable(Predicate predicate) {
-                    for (String index:predicate.getProperties()){
-                        if (!collectionSetup.hasIndex(index)){
-                            return false;
-                        }
-                    }
-                    return true;
+                    return sqLiteQueryGenerator.isAcceptable(p);
                 }
             });
             preparedStatement = sqLiteQueryGenerator.generateFilterStatement(connection, supportedPredicate, options);
@@ -364,6 +432,14 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
     }
 
+    /**
+     * Finds documents specified by predicate and returns first one.
+     * @param collectionName name of collection
+     * @param p              predicate to filter result
+     * @param options        options for result (ie. order...)
+     * @return map representation of first document in result
+     * @throws SqliteException throws exception if there is problem with reading database
+     */
     @Override
     protected Map<String, String> findOne(String collectionName, Predicate p, ResultOptions options) throws SqliteException {
         if (options==null){

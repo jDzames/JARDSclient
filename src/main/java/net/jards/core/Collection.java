@@ -59,7 +59,7 @@ public class Collection {
      */
     public Document create(Document document, Transaction transaction) throws LocalStorageException {
 		checkTransaction(transaction);
-		return transaction.insert(this, document);
+		return transaction.create(this, document);
 	}
 
     /**

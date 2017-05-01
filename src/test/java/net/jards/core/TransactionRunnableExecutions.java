@@ -9,7 +9,7 @@ public class TransactionRunnableExecutions implements  TransactionRunnable {
     public void run(ExecutionContext context, Transaction transaction, Object... arguments) {
         //get argument value
         String value = (String) arguments[0];
-        //create and insert document
+        //create and create document
         Document d = new Document();
         d.setContent(value); //("{\"text\":\"simple test\"}");
 

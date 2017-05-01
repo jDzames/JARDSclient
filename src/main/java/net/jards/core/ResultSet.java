@@ -132,7 +132,8 @@ public class ResultSet {
     }
 
     /**
-     * @param documents
+     * Sets source documents of this result.
+     * @param documents new list used as source documents
      */
     void setResult(List<Document> documents){
         this.sourceDocuments = new ArrayList<>();
@@ -146,7 +147,7 @@ public class ResultSet {
     }
 
     /**
-     * Looking at source docs and overlays creates final docs
+     * Looking at source docs and overlays creates final documents and updates listeners and RxObservable
      */
     private void updateFinalDocuments(){
         //create newFinalDocuments (newFD)
@@ -207,15 +208,24 @@ public class ResultSet {
         closed = true;
 	}
 
+    /**
+     * @return true if result set is closed, else false
+     */
     public boolean isClosed() {
         return closed;
     }
 
+    /**
+     * @return simple list of documents
+     */
     public DocumentList getDocuments() {
 		return new DocumentList(finalDocuments);
 	}
 
-	public Observable<DocumentList> getAsRxList() {
+    /**
+     * @return RxObservable that updates each time changes are made to this result set, uses result documents list
+     */
+    public Observable<DocumentList> getAsRxList() {
         PublishSubject<DocumentList> subject = PublishSubject.create();
         rxObservablesListening.add(subject);
         try {
@@ -226,28 +236,51 @@ public class ResultSet {
 		return subject;
 	}
 
-	public Observable<DocumentChanges> getAsRxChanges() {
+    /**
+     * @return RxObservable that updates each time changes are made to this result set, uses only changes
+     */
+    public Observable<DocumentChanges> getAsRxChanges() {
 		return null;
 	}
 
-	public void addChangeListener(ChangeListener listener) {
+    /**
+     * Adds change listener
+     * @param listener listener to listen for changes of this result set
+     */
+    public void addChangeListener(ChangeListener listener) {
         this.changeListeners.add(listener);
 	}
 
-	public void removeChangeListener(ChangeListener listener) {
+    /**
+     * Removes change listener
+     * @param listener listener to remove
+     */
+    public void removeChangeListener(ChangeListener listener) {
         this.changeListeners.remove(listener);
 	}
 
+    /**
+     * Adds actual documents listener
+     * @param listener listener that listens for actual documents list
+     */
     public void addActualDocumentsListener(ActualDocumentsListener listener) {
         this.actualDocumentsListeners.add(listener);
         listener.resultChanged(new DocumentList(finalDocuments));
     }
 
+    /**
+     * Remove actual documents listener
+     * @param listener specified listener
+     */
     public void removeActualDocumentsListener(ActualDocumentsListener listener) {
         this.actualDocumentsListeners.remove(listener);
     }
 
-	public void applyChanges(DocumentChanges documentChanges){
+    /**
+     * Applies changes to this result set. Actualizes source documents based on given documents.
+     * @param documentChanges changes to apply to this result set
+     */
+    public void applyChanges(DocumentChanges documentChanges){
         //add documents from document changes
         for (Document document: documentChanges.getAddedDocuments()){
             if (matchDocument(document)){
@@ -284,7 +317,10 @@ public class ResultSet {
         updateFinalDocuments();
     }
 
-    //removes this document from last changes and from all overlays
+    /**
+     * Removes this document from last changes and from all overlays.
+     * @param document document to remove
+     */
     private void removeFromOverlays(Document document){
         for (DocumentChanges overlay:overlaysWithChanges.values()) {
             overlay.removeDocumentFromChanges(document);
@@ -292,6 +328,10 @@ public class ResultSet {
         lastChanges.remove(document.getId());
     }
 
+    /**
+     * Adds overlay to this result set.
+     * @param changes overlay changes
+     */
     void addOverlayWithChanges(DocumentChanges changes){
         //create relevant changes for this result set
         DocumentChanges relevantChanges = new DocumentChanges();
@@ -318,6 +358,10 @@ public class ResultSet {
         updateFinalDocuments();
     }
 
+    /**
+     * Method to remove overlay.
+     * @param changes overlay changes to remove
+     */
     void removeOverlayWithChanges(DocumentChanges changes){
         //remove this change
         overlaysWithChanges.remove(changes);
@@ -330,6 +374,11 @@ public class ResultSet {
         updateFinalDocuments();
     }
 
+    /**
+     * Method to update final changes (overlays result) with another overlay.
+     * @param changes original overlay changes
+     * @param relevantChanges only relevant changes for this result set
+     */
     private void updateOverlayChangesWithOverlay(DocumentChanges changes, DocumentChanges relevantChanges){
         //add all relevant added documents that are not used yet
         for (Document document : relevantChanges.getAddedDocuments()){
@@ -354,6 +403,11 @@ public class ResultSet {
         }
     }
 
+    /**
+     * Method to filter documents with this result set's predicate.
+     * @param document document that will be matched
+     * @return true if given document matches this result set's predicate, else false
+     */
     private boolean matchDocument(Document document){
         if (predicate == null){
             return this.collection.getName().equals(document.getCollection().getName());
@@ -366,10 +420,16 @@ public class ResultSet {
         return predicate.match(document);
     }
 
+    /**
+     * @return this result set's collection
+     */
     public Collection getCollection() {
         return collection;
     }
 
+    /**
+     * Resets source documents of this result set. (Can be used when user subscribes with some RemoteStorage implementations.)
+     */
     public void invalidateSourceDocuments() {
         this.sourceDocuments = new ArrayList<>();
         newResult = true;
@@ -377,8 +437,3 @@ public class ResultSet {
     }
 
 }
-
-/*
-*
-*
-* */

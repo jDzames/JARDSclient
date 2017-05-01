@@ -1,10 +1,13 @@
 package net.jards.remote.ddp;
 
 /**
- * Class which provides information and settings for connecting to server
+ * Class which provides information and settings for connecting to server.
  */
 public class DDPConnectionSettings{
 
+    /**
+     * Enum for DDP login types.
+     */
     public enum LoginType {
         Username,
         Email,
@@ -12,12 +15,33 @@ public class DDPConnectionSettings{
         NoLogin
     }
 
+    /**
+     * server address
+     */
     private final String serverAddress;
+    /**
+     * port on which server listens
+     */
     private final int serverPort;
+    /**
+     *DDP login type (username, email, token or no login)
+     */
     private final LoginType loginType;
+    /**
+     * username for corresponding login type
+     */
     private final String userName;
+    /**
+     *email for for corresponding login type
+     */
     private final String email;
+    /**
+     * password for login (user and email types)
+     */
     private final String password;
+    /**
+     * token for corresponding login type
+     */
     private final String resumeToken;
 
     /**

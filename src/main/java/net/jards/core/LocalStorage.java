@@ -276,7 +276,7 @@ public abstract class LocalStorage {
 
 	/**
 	 * Applies changes to local database. Creates new collections if needed,
-	 * insert new documents, updates edited and removed deleted.
+	 * create new documents, updates edited and removed deleted.
 	 * 
 	 * @param remoteDocumentChanges List of DocumentChanges. Can contain collections which does
 	 *            not exist in local database.

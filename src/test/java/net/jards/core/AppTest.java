@@ -60,9 +60,9 @@ public class AppTest
             //execute method with query
             storage.execute(new TransactionRunnableQuery());
 
-            storage.subscribe("tasks");
+            //storage.subscribe("tasks");
             //storage.call("tasks.insertWithSeed", "{\"text\":\"for seed test\"}");
-            //storage.executeAsync(new TransactionRunnableExecutions());
+            //storage.executeAsync(new TransactionRunnableExecutions(), "{\"text\":\"simple test\"}");
 
             /* use case testing code
             TransactionRunnable example = (context, transaction, arguments) -> {

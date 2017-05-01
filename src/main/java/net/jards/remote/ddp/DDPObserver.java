@@ -17,11 +17,10 @@ import static net.jards.core.Connection.CONNECTED_AFTER_BEING_DISCONNECTED;
 import static net.jards.core.Connection.STATE;
 
 /**
+ * DDP client observer handling server messages and sending needed data to DDPRemoteStorage.
  *
  * @author kenyee
  * edited by jdzama
- *
- * DDP client observer that handles enough messages for unit tests to work
  */
 public class DDPObserver extends DDPListener implements Observer {
 
@@ -32,6 +31,7 @@ public class DDPObserver extends DDPListener implements Observer {
         Closed,
     }
 
+    //DDP system variables
     public DDPSTATE mDdpState;
     public String mResumeToken;
     public String mUserId;
@@ -59,6 +59,11 @@ public class DDPObserver extends DDPListener implements Observer {
     private final Gson gson;
 
 
+    /**
+     * Creates DDPObserver instance with remote storage reference and given session.
+     * @param ddpRemoteStorage
+     * @param session
+     */
     public DDPObserver(DDPRemoteStorage ddpRemoteStorage, String session) {
         this.ddpRemoteStorage = ddpRemoteStorage;
         if (session!=null && !"".equals(session)){
@@ -70,8 +75,12 @@ public class DDPObserver extends DDPListener implements Observer {
         mDdpState = DDPSTATE.Disconnected;
     }
 
+
     /**
-     * Handles processing of DDP msgs
+     * Handles received message(s).
+     * Sets ddp system variables and data from server, connection changes and confirmations to DDPRemoteStorage.
+     * @param client observable client
+     * @param msg received message
      */
     @SuppressWarnings("unchecked")
     public void update(Observable client, Object msg) {

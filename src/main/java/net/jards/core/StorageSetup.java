@@ -8,23 +8,44 @@ import java.util.LinkedHashMap;
  */
 public class StorageSetup {
 
+    /**
+     * Enum for remote login strategy: no login, login if it's possible, demand login.
+     */
     public enum RemoteLoginType {
         NoLogin,
         LoginIfPossible,
         DemandLogin
     }
 
+    /**
+     * map with setup for local collections
+     */
     private final LinkedHashMap<String, CollectionSetup> localCollections = new LinkedHashMap<>();
 
+    /**
+     * prefix for this user
+     */
     private String prefix;
+    /**
+     * json property extractor (user can specify his own)
+     */
     private JSONPropertyExtractor jsonPropertyExtractor = null;
+    /**
+     * remote login type/strategy
+     */
     private RemoteLoginType remoteLoginType;
 
+    /**
+     * Constructor, sets default values.
+     */
     public StorageSetup(){
         jsonPropertyExtractor = new DefaultJSONPropertyExtractor();
         remoteLoginType = RemoteLoginType.NoLogin;
     }
 
+    /**
+     * @param prefix prefix for this user
+     */
     public void setPrefix(String prefix) {
         this.prefix = prefix;
         for (CollectionSetup collectionSetup:localCollections.values()) {
@@ -32,6 +53,9 @@ public class StorageSetup {
         }
     }
 
+    /**
+     * @return prefix of this user
+     */
     public String getPrefix() {
         return prefix;
     }
@@ -47,40 +71,58 @@ public class StorageSetup {
         localCollections.put(name, collectionSetup);
     }
 
+    /**
+     * Creates and adds collection (adds simple collection setup without indexes).
+     * @param name name of collection
+     */
     public void addCollection(String name){
         CollectionSetup collectionSetup = new CollectionSetup(prefix, name, false);
         localCollections.put(name, collectionSetup);
     }
 
+    /**
+     * Adds collection setup.
+     * @param collectionSetup collection setup that will be added
+     */
     public void addCollectionSetup(CollectionSetup collectionSetup){
-        if (collectionSetup.getPrefix() != this.prefix){
-            return; //TODO exception here? (wrong prefix)
+        if (collectionSetup.getPrefix().equals(this.prefix)){
+            throw new IllegalArgumentException("You have to specify same prefix as for StorageSetup!");
         }
         localCollections.put(collectionSetup.getName(), collectionSetup);
     }
 
+    /**
+     * @return map of local collections
+     */
     public LinkedHashMap<String, CollectionSetup> getLocalCollections() {
         return localCollections;
     }
 
+    /**
+     * @param jsonPropertyExtractor specify your preferred json property extractor
+     */
     public void setJsonPropertyExtractor(JSONPropertyExtractor jsonPropertyExtractor) {
         this.jsonPropertyExtractor = jsonPropertyExtractor;
     }
 
+    /**
+     * @param remoteLoginType set preferred login type/strategy
+     */
     public void setRemoteLoginType(RemoteLoginType remoteLoginType) {
         this.remoteLoginType = remoteLoginType;
     }
 
+    /**
+     * @return selected json property extractor
+     */
     public JSONPropertyExtractor getJsonPropertyExtractor() {
         return jsonPropertyExtractor;
     }
 
+    /**
+     * @return selected remote login type/strategy
+     */
     public RemoteLoginType getRemoteLoginType() {
         return remoteLoginType;
     }
 }
-
-/*
-*
-*
-* */

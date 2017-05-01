@@ -17,7 +17,7 @@ import static net.jards.core.StorageSetup.RemoteLoginType.DemandLogin;
 public class Storage {
 
     /**
-     * Class that executes local storage oriented  requests from storage.
+     * Class that executes local storage oriented requests from storage.
      */
     private class RequestsLocalHandlingThread extends Thread {
 		@Override
@@ -27,7 +27,7 @@ public class Storage {
 			setThreadForLocalDBRuns(Thread.currentThread());
 
 			while (running) {
-
+                //remote changes are written first (if there are some)
                 synchronized (remoteChanges) {
                     if (!remoteChanges.isEmpty()){
                         while (!remoteChanges.isEmpty()){
@@ -50,7 +50,7 @@ public class Storage {
                         }
                     }
                 }
-
+                //execute pending requests
 				ExecutionRequest executionRequest = null;
 				synchronized (pendingRequestsLocal) {
                     if (pendingRequestsLocal.isEmpty() /*&& running*/){
@@ -120,7 +120,7 @@ public class Storage {
                 boolean recoveredFromPause = false;
                 while (disconnectedFromRemoteStorage ){
                     recoveredFromPause = true;
-                    synchronized (connectionLock){
+                    //synchronized (connectionLock){
                         try {
                             //try to connect
                             remoteStorage.start(session);
@@ -130,7 +130,7 @@ public class Storage {
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                    }
+                    //}
                 }
                 //continue - if we want stop work, to check if running is true
                 if (recoveredFromPause){
@@ -190,40 +190,95 @@ public class Storage {
         }
     }
 
-	private final RemoteStorage remoteStorage;
-	private final LocalStorage localStorage;
+    /**
+     * reference for RemoteStorage that is used with this Storage
+     */
+    private final RemoteStorage remoteStorage;
+    /**
+     * reference for LocalStorage that is used with this Storage
+     */
+    private final LocalStorage localStorage;
+    /**
+     * StorageSetup for this Storage
+     */
     private final StorageSetup storageSetup;
+    /**
+     * Session (from RemoteStorage) in string representation
+     */
     private String session = "";
 
-	private final Map<String, TransactionRunnable> speculativeMethods = new HashMap<String, TransactionRunnable>();
+    /**
+     * map containing speculative methods (key is name, value method)
+     */
+    private final Map<String, TransactionRunnable> speculativeMethods = new HashMap<String, TransactionRunnable>();
 
+    /**
+     * queue for pending changes from RemoteStorage
+     */
     private final Queue<UpdateDbRequest> remoteChanges = new LinkedList<UpdateDbRequest>();
-	private final Queue<ExecutionRequest> pendingRequestsLocal = new LinkedList<ExecutionRequest>();
-	private final Queue<ExecutionRequest> unconfirmedRequestsLocal = new LinkedList<ExecutionRequest>();
+    /**
+     * queue for pending requests from user (local storage oriented)
+     */
+    private final Queue<ExecutionRequest> pendingRequestsLocal = new LinkedList<ExecutionRequest>();
+    /**
+     * queue for unconfirmed requests (local storage oriented)
+     */
+    private final Queue<ExecutionRequest> unconfirmedRequestsLocal = new LinkedList<ExecutionRequest>();
 
+    /**
+     * queue for pending requests from user (remote storage oriented)
+     */
     private final Queue<ExecutionRequest> pendingRequestsRemote = new LinkedList<ExecutionRequest>();
+    /**
+     * queue for unconfirmed requests (remote storage oriented)
+     */
     private final Queue<ExecutionRequest> unconfirmedRequestsRemote = new LinkedList<ExecutionRequest>();
 
-    private final Queue<ResultSet> openedResultSets = new LinkedList<ResultSet>();
+    /**
+     * list of opened result sets
+     */
+    private final List<ResultSet> openedResultSets = new LinkedList<ResultSet>();
 
-	private RequestsLocalHandlingThread requestsLocalHandlingThread;
-	private Thread threadForLocalDBRuns;
+    /**
+     * class with thread doing local storage oriented work
+     */
+    private RequestsLocalHandlingThread requestsLocalHandlingThread;
+    /**
+     * reference for thread doing local work (for transaction check)
+     */
+    private Thread threadForLocalDBRuns;
 
+    /**
+     * class with thread doing remote storage oriented work
+     */
     private RequestsRemoteHandlingThread requestsRemoteHandlingThread;
 
-    private final JSONPropertyExtractor jsonPropertyExtractor;
+    //private final Object connectionLock = new Object();
 
-	private final Object connectionLock = new Object();
-
+    /**
+     * boolean to control local and remote classes with threads work; set to false to end their work
+     */
     private volatile boolean running = false;
+    /**
+     * boolean to control connecting to server
+     */
     private volatile boolean disconnectedFromRemoteStorage = true;
 
+    /**
+     * type of login to server
+     */
     private StorageSetup.RemoteLoginType remoteLoginType;
 
-	public Storage(StorageSetup setup, RemoteStorage remoteStorage, final LocalStorage localStorage) {
+    /**
+     * Constructor for Storage class. Sets local and remote storage and StorageSetup.
+     * Creates RemoteStorageListener implementation and sets it to used remote storage.
+     * @param setup setup for this Storage
+     * @param remoteStorage RemoteStorage implementation to communicate with remote server
+     * @param localStorage LocalStorage implementation to communicate with local database
+     */
+    public Storage(StorageSetup setup, RemoteStorage remoteStorage, LocalStorage localStorage) {
 		this.remoteStorage = remoteStorage;
 		this.localStorage = localStorage;
-        this.jsonPropertyExtractor = setup.getJsonPropertyExtractor();
         storageSetup = setup;
         this.remoteLoginType = storageSetup.getRemoteLoginType();
 		remoteStorage.setListener(new RemoteStorageListener() {
@@ -360,6 +415,11 @@ public class Storage {
 		});
     }
 
+    /**
+     * Method to invalidate collection (server may use it and send all data again).
+     * @param collection name of collection
+     * @throws LocalStorageException thrown if problem happens while working with local database
+     */
     private void invalidateCollection(String collection) throws LocalStorageException {
         if (collection == null || "".equals(collection)){
             //reset all collections (new session on remote storage)
@@ -372,6 +432,13 @@ public class Storage {
         }
     }
 
+    /**
+     * Method to apply list of changes to document requests.
+     *
+     * Testing use of it (if server doesn't confirm request,  overlays else overwrite documents
+     * already received from server).
+     * @param documentChanges list of document changes
+     */
     private void applyListOfChangesOnUnconfirmedRequests(List<DocumentChanges> documentChanges) {
         synchronized (unconfirmedRequestsLocal){
             for (ExecutionRequest request:unconfirmedRequestsLocal){
@@ -381,6 +448,13 @@ public class Storage {
         }
     }
 
+    /**
+     * Method to apply changes to document requests.
+     *
+     * Testing use of it (if server doesn't confirm request,  overlays else overwrite documents
+     * already received from server).
+     * @param documentChanges changes from server to update overlays
+     */
     private void applyChangesOnUnconfirmedRequests(DocumentChanges documentChanges) {
         synchronized (unconfirmedRequestsLocal){
             for (ExecutionRequest request:unconfirmedRequestsLocal){
@@ -390,13 +464,24 @@ public class Storage {
         }
     }
 
+    /**
+     * Adds result set that should be updated with changes then.
+     * @param resultSet new created result set
+     */
     void addOpenedResultSet(ResultSet resultSet) {
         synchronized (openedResultSets){
-            this.openedResultSets.offer(resultSet);
+            this.openedResultSets.add(resultSet);
             openedResultSets.notify();
         }
     }
 
+    /**
+     * Method to apply changes to document requests.
+     *
+     * Testing use of it (if server doesn't confirm request, overlays else overwrite documents
+     * already received from server).
+     * @param documentChanges list of changes from server
+     */
     private void applyListOfChangesOnOpenedResultSets(List<DocumentChanges> documentChanges) {
         synchronized (openedResultSets){
             openedResultSets.removeIf(ResultSet::isClosed);
@@ -408,6 +493,13 @@ public class Storage {
 
     }
 
+    /**
+     * Method to apply changes to opened result sets.
+     *
+     * Testing use of it (if server doesn't confirm request, overlays else overwrite documents
+     * already received from server).
+     * @param documentChanges changes from server
+     */
     private void applyChangesOnOpenedResultSets(DocumentChanges documentChanges) {
         synchronized (openedResultSets){
             openedResultSets.removeIf(ResultSet::isClosed);
@@ -418,6 +510,11 @@ public class Storage {
         }
     }
 
+    /**
+     * Invalidate all opened result sets created by specified collection. Can be used when collection
+     * is being invalidated and server sends all data (again).
+     * @param collection name of invalidated collection
+     */
     private void invalidateOpenedResultSets(String collection){
         synchronized (openedResultSets){
             openedResultSets.removeIf(ResultSet::isClosed);
@@ -431,6 +528,10 @@ public class Storage {
         }
     }
 
+    /**
+     * Adds overlay to opened result sets. (Also removes all closed result sets.)
+     * @param documentChanges overlay with changes that will be added
+     */
     private void addOverlayToOpenedResultSets(DocumentChanges documentChanges){
         synchronized (openedResultSets){
             openedResultSets.removeIf(ResultSet::isClosed);
@@ -441,6 +542,10 @@ public class Storage {
         }
     }
 
+    /**
+     * Removes overlay from opened result sets. (Also removes all closed result sets.)
+     * @param documentChanges overlay with changes that will be removed
+     */
     private void removeOverlayOfOpenedResultSets(DocumentChanges documentChanges){
         synchronized (openedResultSets){
             openedResultSets.removeIf(ResultSet::isClosed);
@@ -451,11 +556,21 @@ public class Storage {
         }
     }
 
-	private void setThreadForLocalDBRuns(Thread threadForLocalDBRuns) {
+    /**
+     * Sets given thread to variable to it's possible to test if executed code is in given thread.
+     * @param threadForLocalDBRuns thread where local storage requests are being processed
+     */
+    private void setThreadForLocalDBRuns(Thread threadForLocalDBRuns) {
 		this.threadForLocalDBRuns = threadForLocalDBRuns;
 	}
 
-	boolean sameAsThreadForLocalDBRuns(Thread thread) {
+    /**
+     * Tests if given thread is same as the one for local storage oriented transactions to run.
+     * Used by transaction.
+     * @param thread thread to test
+     * @return true if threads are same
+     */
+    boolean sameAsThreadForLocalDBRuns(Thread thread) {
 		return threadForLocalDBRuns == thread;
 	}
 
@@ -492,20 +607,37 @@ public class Storage {
         return new Collection(collectionSetup, this);
     }
 
+    /**
+     * @return true if storage is running
+     */
     public boolean isRunning() {
         return running;
     }
 
+    /**
+     * @return LocalStorage implementation used in this Storage
+     */
     /*public*/ LocalStorage getLocalStorage() {
         return localStorage;
     }
 
+    /**
+     * @return RemoteStorage implementation used in this Storage
+     */
     /*public*/ RemoteStorage getRemoteStorage() {
         return remoteStorage;
     }
 
+    /**
+     * map of active subscriptions (key is name, value is request used to subscribe)
+     */
     private final Map<String, ExecutionRequest> activeSubscriptions = new HashMap<>();
 
+    /**
+     * Method used to subscribe to server (through remotes torage).
+     * @param subscriptionName name of subscription
+     * @param arguments optional arguments
+     */
     public void subscribe(String subscriptionName, Object... arguments) {
         ExecutionRequest executionRequest = new ExecutionRequest(null);
         executionRequest.setRequestType(Subscribe);
@@ -542,20 +674,40 @@ public class Storage {
         }
     }
 
-	public void registerSpeculativeMethod(String name, TransactionRunnable runnable) {
+    /**
+     * Adds speculative method (simulation) to storage. This method will be used when call method
+     * with same name will be used.
+     * @param name name for speculation
+     * @param runnable method for speculation (TransactionRunnable implementation)
+     */
+    public void registerSpeculativeMethod(String name, TransactionRunnable runnable) {
 		if (name == null ||  runnable == null){
 			//TODO error?
 		}
 		speculativeMethods.put(name, runnable);
 	}
 
-	public ExecutionRequest execute(TransactionRunnable runnable, Object... arguments) {
+    /**
+     * Execute type of method. Storage executes it locally with local storage and then sends changes to server.
+     * Blocking version.
+     * @param runnable operations that will be executed
+     * @param arguments optional arguments
+     * @return  created ExecutionRequest for this execution
+     */
+    public ExecutionRequest execute(TransactionRunnable runnable, Object... arguments) {
 		ExecutionRequest executionRequest = executeAsync(runnable, arguments);
 		executionRequest.await();
 		return executionRequest;
 	}
 
-	public ExecutionRequest executeAsync(TransactionRunnable runnable, Object... arguments) {
+    /**
+     * Execute type of method. Storage executes it locally with local storage and then sends changes to server.
+     * Asynchronous version.
+     * @param runnable operations that will be executed
+     * @param arguments optional arguments
+     * @return created ExecutionRequest for this execution
+     */
+    public ExecutionRequest executeAsync(TransactionRunnable runnable, Object... arguments) {
         String seed = "";
         IdGenerator idGenerator = remoteStorage.getIdGenerator(seed);
         Transaction transaction = new Transaction(this, idGenerator);
@@ -575,8 +727,9 @@ public class Storage {
 
     /**
      * Executes given TransactionRunnable only locally; can only use non-synchronized collections.
+     * Blocking version.
      * @param runnable user given code inside
-     * @param arguments argements
+     * @param arguments optional arguments
      * @return created ExecutionRequest for this execution
      */
     public ExecutionRequest executeLocally(TransactionRunnable runnable, Object... arguments) {
@@ -585,7 +738,14 @@ public class Storage {
         return executionRequest;
 	}
 
-	public ExecutionRequest executeLocallyAsync(TransactionRunnable runnable, Object... arguments) {
+    /**
+     * Executes given TransactionRunnable only locally; can only use non-synchronized collections.
+     * Asynchronous version.
+     * @param runnable user given code inside
+     * @param arguments optional arguments
+     * @return created ExecutionRequest for this execution
+     */
+    public ExecutionRequest executeLocallyAsync(TransactionRunnable runnable, Object... arguments) {
         String seed = "";
         IdGenerator idGenerator = remoteStorage.getIdGenerator(seed);
         Transaction transaction = new Transaction(this, idGenerator);
@@ -604,24 +764,29 @@ public class Storage {
         return executionRequest;
 	}
 
-	public ExecutionRequest call(String methodName, Object... arguments) {
+    /**
+     * Call remote method on server. If there is speculation for this methodName it will be
+     * executed locally as speculation.
+     * Blocking version.
+     * @param methodName name of method that will be called
+     * @param arguments optional arguments
+     * @return created ExecutionRequest for this execution
+     */
+    public ExecutionRequest call(String methodName, Object... arguments) {
 		ExecutionRequest executionRequest = callAsync(methodName, arguments);
 		executionRequest.await();
 		return executionRequest;
 	}
 
-	public ExecutionRequest callAsync(String methodName, Object... arguments) {
-		// Odosle call request do vlakna, kde sa asynchronne
-		// no serialozovane spracovavaju modifikujuce kody.
-
-		// Postup spracovania:
-		// ak ma metoda lokalne registrovanu verziu, tak sa v transakcii
-		// odsimuluje lokalny kod
-		// poziadavka na call aj s transakciou sa zapise do RemoteStorage
-		// ked sa call vykona, transakcia sa vyhodi zo zoznamu transakcii (jej
-		// zmeny sa ignoruju).
-
-        //TODO generate random seed
+    /**
+     * Call remote method on server. If there is speculation for this methodName it will be
+     * executed locally as speculation.
+     * Blocking version.
+     * @param methodName name of method that will be called
+     * @param arguments optional arguments
+     * @return created ExecutionRequest for this execution
+     */
+    public ExecutionRequest callAsync(String methodName, Object... arguments) {
         String seed = UUID.randomUUID().toString();
         IdGenerator idGenerator = remoteStorage.getIdGenerator(seed);
 		Transaction transaction = new Transaction(this, idGenerator);

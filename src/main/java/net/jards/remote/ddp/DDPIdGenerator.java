@@ -5,7 +5,9 @@ import net.jards.core.IdGenerator;
 import java.util.UUID;
 
 /**
- * Created by jDzama on 24.1.2017.
+ * DDP (meteor) id generator class. Serves to generate same ids locally in speculations as on server.
+ * This implementation is used in Meteor, uses algorithm alea.
+ * Original algorithm: https://github.com/meteor/meteor/blob/devel/packages/random/random.js
  */
 public class DDPIdGenerator implements IdGenerator{
 

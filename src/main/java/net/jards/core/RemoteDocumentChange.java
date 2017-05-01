@@ -6,7 +6,7 @@ package net.jards.core;
 public class RemoteDocumentChange {
 
     /**
-     * Type of change: insert, update, remove.
+     * Type of change: create, update, remove.
      */
     public enum ChangeType {
 		INSERT, UPDATE, REMOVE

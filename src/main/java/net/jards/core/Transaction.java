@@ -2,27 +2,55 @@ package net.jards.core;
 
 import net.jards.errors.LocalStorageException;
 
+/**
+ * Class representing transaction. Transaction executes document operations and holds document changes.
+ * This way it creates overlays.
+ */
 public class Transaction {
 
-	private final Storage storage;
+    /**
+     * storage reference
+     */
+    private final Storage storage;
 
+    /**
+     * true if transaction is meant for local execution
+     */
     private boolean local;
+    /**
+     * true if this transaction execution should be speculation
+     */
     private boolean speculation;
 
+    /**
+     * id generator reference
+     */
     private final IdGenerator idGenerator;
 
-	private final DocumentChanges localChanges = new DocumentChanges();
+    /**
+     * local changes made by this transaction (overlay)
+     */
+    private final DocumentChanges localChanges = new DocumentChanges();
 
-	Transaction(Storage storage, IdGenerator idGenerator) {
+    /**
+     * Package protected constructor for transaction.
+     * @param storage reference to storage
+     * @param idGenerator id generator reference
+     */
+    Transaction(Storage storage, IdGenerator idGenerator) {
 		this.storage = storage;
         this.idGenerator = idGenerator;
 	}
 
-	/*
-	 * Package protected vs. protected?
-	 */
-	
-	Document insert(Collection collection, Document document) throws LocalStorageException {
+    /**
+     * Method that creates document (gets document with content only and creates full functioning document).
+     * Writes changes to database (if execute) or adds document to overlay (if speculation).
+     * @param collection collection where document belongs
+     * @param document document (with content only)
+     * @return new created document with id and collection
+     * @throws LocalStorageException thrown if problems happens while writing to database
+     */
+    Document create(Collection collection, Document document) throws LocalStorageException {
 		// storage -> localStorage -> sql/other.. createDocument
 
         // createDocument document
@@ -53,8 +81,16 @@ public class Transaction {
 
 		return document;
 	}
-	
-	Document update(Collection collection, Document document) throws LocalStorageException {
+
+    /**
+     * Method that updates document (from document with updated content).
+     * Writes changes to database (if execute) or adds document to overlay (if speculation).
+     * @param collection collection where document belongs
+     * @param document document (with updated content)
+     * @return updated document
+     * @throws LocalStorageException thrown if problems happens while writing to database
+     */
+    Document update(Collection collection, Document document) throws LocalStorageException {
         // updating document
 
         // add to updated documents
@@ -79,7 +115,15 @@ public class Transaction {
 
         return document;
 	}
-	
+
+    /**
+     * Method that removes selected document.
+     * Writes changes to database (if execute) or adds document to overlay (if speculation).
+     * @param collection collection where document belongs
+     * @param document document (with updated content)
+     * @return true if deletion finished successfully
+     * @throws LocalStorageException thrown if problems happens while writing to database
+     */
 	boolean remove(Collection collection, Document document) throws LocalStorageException {
         // removing document
 
@@ -106,28 +150,38 @@ public class Transaction {
         return true;
 	}
 
+    /**
+     * @return
+     */
     DocumentChanges getLocalChanges() {
         return localChanges;
     }
 
+    /**
+     * @return storage given to this transaction
+     */
     Storage getStorage() {
         return storage;
     }
 
+    /**
+     * @return true if in right thread (for local storage operations)
+     */
     boolean checkIfInThreadForDBRuns() {
 		return storage.sameAsThreadForLocalDBRuns(Thread.currentThread());
 	}
 
+    /**
+     * @param speculation speculation code
+     */
     void setSpeculation(boolean speculation) {
         this.speculation = speculation;
     }
 
+    /**
+     * @param local true if its executeLocally method, else false
+     */
     void setLocal(boolean local) {
         this.local = local;
     }
 }
-
-/*
-*
-*
-* */

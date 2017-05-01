@@ -370,7 +370,11 @@ public class SQLiteLocalStorage extends LocalStorage {
             options = new ResultOptions();
         }
         options.setLimit(1);
-        return find(collectionName, p, options).get(0);
+        List<Map<String, String>> result = find(collectionName, p, options);
+        if (result == null || result.size() == 0){
+            return null;
+        }
+        return result.get(0);
     }
 
 }

@@ -12,11 +12,11 @@ public class TransactionRunnableQuery implements TransactionRunnable {
         Collection collection = context.getCollection("tasks");
         try {
             //find one simple example
-            Document najdeny = collection.findOne();
+            /*Document najdeny = collection.findOne();
             String porovnavanePole = "text";
             String hodnota = "text niektoreho dokumentu";
             Predicate podmienka = new Predicate.Equals(porovnavanePole, hodnota);
-            Document najdenyDocument = collection.findOne(podmienka);
+            Document najdenyDocument = collection.findOne(podmienka);*/
 
 
             //find all with changes

@@ -4,7 +4,6 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import net.jards.errors.LocalStorageException;
-import net.jards.errors.WrongSettingsException;
 import net.jards.local.sqlite.SQLiteLocalStorage;
 import net.jards.remote.ddp.DDPConnectionSettings;
 import net.jards.remote.ddp.DDPRemoteStorage;
@@ -86,7 +85,7 @@ public class AppTest
             //Thread.sleep(300000);
             storage.stop();
 
-        } catch (LocalStorageException | InterruptedException | WrongSettingsException e) {
+        } catch (LocalStorageException | InterruptedException e) {
             e.printStackTrace();
         }
 

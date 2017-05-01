@@ -4,7 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 
 /**
- * Created by jDzama on 21.1.2017.
+ * Test class.
  */
 public class SQLiteTest {
 

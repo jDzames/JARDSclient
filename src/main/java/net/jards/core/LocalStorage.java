@@ -7,20 +7,51 @@ import net.jards.local.sqlite.SqliteException;
 
 import java.util.*;
 
+/**
+ * Class for local storage. Serves as interface for communication with local database (or other storage of data).
+ * Extend this if you want your own implementation.
+ */
 public abstract class LocalStorage {
 
+    /**
+     * Interface to filter predicates that can be used natively in exact LocalStorage implementation.
+     */
     public interface PredicateFilter {
-		boolean isAcceptable(Predicate predicate);
+        /**
+         * Method to filter predicates
+         * @param predicate given predicate
+         * @return true if you want to accept this predicate, else false
+         */
+        boolean isAcceptable(Predicate predicate);
 	}
 
-	private final String prefix;
-	private final LinkedHashMap<String, CollectionSetup> collections;
-	private final CollectionSetup setupHashCollection;
-	private final String setupHash;
-	// private final CollectionSetup setupCollection;
+    /**
+     * prefix of this user (local storage)
+     */
+    private final String prefix;
+    /**
+     * collections used by this storage (name of collection as key, CollectionSetup with settings as value)
+     */
+    private final LinkedHashMap<String, CollectionSetup> collections;
+    /**
+     * system collection with hash of this setup
+     */
+    private final CollectionSetup setupHashCollection;
+    /**
+     * hash of this setup
+     */
+    private final String setupHash;
+    // private final CollectionSetup setupCollection;
+    /**
+     * property extractor to extract values from JSON fields
+     */
 	private final JSONPropertyExtractor jsonPropertyExtractor;
 
-	public LocalStorage(StorageSetup storageSetup) {
+    /**
+     * Public constructor for Local storage which prepares all settings for local storage
+     * @param storageSetup setup specified by user, need at least prefix in it for system to work
+     */
+    public LocalStorage(StorageSetup storageSetup) {
         if (storageSetup==null || storageSetup.getPrefix()==null || "".equals(storageSetup.getPrefix())){
             throw new IllegalArgumentException("Specify StorageSetup with prefix!");
         }
@@ -41,7 +72,8 @@ public abstract class LocalStorage {
 	}
 
 	/**
-	 * @return hashCode() value of collections from setup
+     * Computes this setup hash and returns value.
+	 * @return hash value of collections from setup (just summed strings in this version)
 	 */
 	private String computeSetupHash() {
         StringBuilder hash = new StringBuilder();
@@ -57,7 +89,7 @@ public abstract class LocalStorage {
 
 	/**
 	 * Make documents from collections and createDocument them into special
-	 * setupCollection. (Not used, cause collections are hold in map here)
+	 * setupCollection. (Not used in this version, cause collections are hold in map as of now)
 	 */
 	private void fillSetupCollections() {
 
@@ -88,17 +120,31 @@ public abstract class LocalStorage {
 
 	}
 
-	protected void addCollectionSetup(CollectionSetup collectionSetup) {
+    /**
+     * Adds CollectionSetup to this LocalStorage. Possible only if server sends documents with new collection.
+     * @param collectionSetup setup of new collection
+     */
+    protected void addCollectionSetup(CollectionSetup collectionSetup) {
 		this.collections.put(collectionSetup.getName(), collectionSetup);
 	}
 
-	protected CollectionSetup getCollectionSetup(String collectionName) {
+    /**
+     * Returns setup for specified collection so implementations of LocalStorage can use it.
+     * @param collectionName specified name
+     * @return setup for specified collection
+     */
+    protected CollectionSetup getCollectionSetup(String collectionName) {
 		if (!collections.containsKey(collectionName)) {
 			return null;
 		}
 		return collections.get(collectionName);
 	}
 
+    /**
+     * Invalidates all collections that are remote. Can be used after new subscribe call
+     * (some servers send all data after subscribe).
+     * @throws LocalStorageException if error happens while dropping or creating collections in database
+     */
     protected void invalidateRemoteCollections() throws LocalStorageException {
         for (CollectionSetup collectionSetup:this.collections.values()){
             if (!collectionSetup.isLocal()){
@@ -108,15 +154,19 @@ public abstract class LocalStorage {
         }
     }
 
-	protected JSONPropertyExtractor getJsonPropertyExtractor() {
+    /**
+     * @return extractor used in this class
+     */
+    protected JSONPropertyExtractor getJsonPropertyExtractor() {
 		return jsonPropertyExtractor;
 	}
 
 	/**
 	 * Checks if collections from storageSetup exists, if no - creates them.
 	 * Starts LocalStorage, if you want to continue, read work that has not been
-	 * saved (unconfirmed changes) and return it. Storage will use it.
-	 * 
+	 * saved (unconfirmed/pending requests) and return it. Storage will use it.
+	 * (Using returned requests not implemented yet).
+     *
 	 * @return List of saved requests
 	 */
 	List<ExecutionRequest> start() throws LocalStorageException {
@@ -145,62 +195,131 @@ public abstract class LocalStorage {
 	}
 
 	/**
-	 * TODO save state - all from queue from thread (unconfirmed requests) Stops
-	 * the execution, saves changes which have been done, but not confirmed by
+	 * Stops the execution, saves changes which have been done, but not confirmed by
 	 * server yet and not written into database.
+     * (Saving changes not implemented yet. What should be saved (which queues with work)? All?)
 	 * 
-	 * @param unconfirmedRequests
-	 *            queue of unconfirmed requests
+	 * @param unconfirmedRequests queue of unconfirmed requests
 	 */
 	void stop(Queue<ExecutionRequest> unconfirmedRequests) {
 		// TODO save unfinished work???
 		stopLocalStorage(unconfirmedRequests);
 	}
 
-	protected abstract List<ExecutionRequest> startLocalStorage();
+    /**
+     * Starts local storage and reads saved requests.
+     * (Using returned requests not implemented yet).
+     * @return List of execution request.
+     */
+    protected abstract List<ExecutionRequest> startLocalStorage();
 
-	protected abstract void stopLocalStorage(Queue<ExecutionRequest> unconfirmedRequests);
+    /**
+     * Extend to stop LocalStorage and saves requests.
+     * (Requests work not implemented yet.)
+     * @param unconfirmedRequests requests to save (pending requests should be added too probably)
+     */
+    protected abstract void stopLocalStorage(Queue<ExecutionRequest> unconfirmedRequests);
 
-	protected abstract void connectDB() throws LocalStorageException;
+    /**
+     * Connect to local database
+     * @throws LocalStorageException if error happens while working with local database
+     */
+    protected abstract void connectDB() throws LocalStorageException;
 
-	protected abstract void addCollection(CollectionSetup collection) throws LocalStorageException;
+    /**
+     * Extend to add collection to database
+     * @param collection collection to add
+     * @throws LocalStorageException if error happens while working with local database
+     */
+    protected abstract void addCollection(CollectionSetup collection) throws LocalStorageException;
 
+	/* we use invalidate, not this.
 	void removeCollection(String collectionName) throws LocalStorageException {
         if (collections.containsKey(collectionName)){
             this.removeCollection(collections.get(collectionName));
         }
-	}
+	}*/
 
-	protected abstract void removeCollection(CollectionSetup collection) throws LocalStorageException;
+    /**
+     * Extend to remove collection
+     * @param collection collection to remove
+     * @throws LocalStorageException if error happens while working with local database
+     */
+    protected abstract void removeCollection(CollectionSetup collection) throws LocalStorageException;
 
-	protected abstract String createDocument(String collectionName, Document document) throws LocalStorageException;
+    /**
+     * Extend to create document and write it into database.
+     * @param collectionName name of collection for document
+     * @param document document to create write to database)
+     * @return string representation of id of created document
+     * @throws LocalStorageException if error happens while working with local database
+     */
+    protected abstract String createDocument(String collectionName, Document document) throws LocalStorageException;
 
-	protected abstract String updateDocument(String collectionName, Document document) throws LocalStorageException;
+    /**
+     * Extend to update selected document.
+     * @param collectionName name of collection to which document belongs
+     * @param document document you want to update (original id, changed content)
+     * @return string representation of id of updated document
+     * @throws LocalStorageException if error happens while working with local database
+     */
+    protected abstract String updateDocument(String collectionName, Document document) throws LocalStorageException;
 
-	protected abstract boolean removeDocument(String collectionName, Document document) throws LocalStorageException;
+    /**
+     * Extend to remove selected document
+     * @param collectionName name of collection where selected document belongs
+     * @param document document to remove
+     * @return true if document was removed successfully
+     * @throws LocalStorageException if error happens while working with local database
+     */
+    protected abstract boolean removeDocument(String collectionName, Document document) throws LocalStorageException;
 
 	/**
 	 * Applies changes to local database. Creates new collections if needed,
 	 * insert new documents, updates edited and removed deleted.
 	 * 
-	 * @param remoteDocumentChanges
-	 *            List of DocumentChanges. Can contain collections which does
+	 * @param remoteDocumentChanges List of DocumentChanges. Can contain collections which does
 	 *            not exist in local database.
-	 * @throws LocalStorageException
-	 *             throws exception if any of write updates fails
+	 * @throws LocalStorageException throws exception if any of write updates fails
 	 */
 	protected abstract void applyDocumentChanges(DocumentChanges remoteDocumentChanges)
 			throws LocalStorageException;
 
-	protected abstract List<Map<String, String>> find(String collectionName, Predicate p, ResultOptions options) throws LocalStorageException;
+    /**
+     * Extend to find selected documents and return them in list (in map representation with id,
+     * collection and content).
+     * Collection then creates documents from it and put them into ResultSet.
+     * @param collectionName name of collection
+     * @param p predicate to filter result
+     * @param options options for result (ie. order...)
+     * @return list with documents in map representation (with id, collection and content)
+     * @throws LocalStorageException if error happens while working with local database
+     */
+    protected abstract List<Map<String, String>> find(String collectionName, Predicate p, ResultOptions options) throws LocalStorageException;
 
-	protected abstract Map<String, String> findOne(String collectionName, Predicate p, ResultOptions options) throws LocalStorageException;
+    /**
+     * Extend to find selected document (you can find all matching predicate and return first from result).
+     * @param collectionName name of collection
+     * @param p predicate to filter result
+     * @param options options for result (ie. order...)
+     * @return map representation of found document
+     * @throws LocalStorageException if error happens while working with local database
+     */
+    protected abstract Map<String, String> findOne(String collectionName, Predicate p, ResultOptions options) throws LocalStorageException;
 
-	protected String getPrefix() {
+    /**
+     * @return prefix of this storage (user)
+     */
+    protected String getPrefix() {
 		return prefix;
 	}
 
-	public boolean hasNativeSupportForPredicate(Predicate predicate) {
+    /**
+     * You can extend and return true if you support selected predicate
+     * @param predicate predicate asked about being supported
+     * @return true if local storage supports selected predicate natively, else false
+     */
+    public boolean hasNativeSupportForPredicate(Predicate predicate) {
 		return false;
 	}
 
@@ -208,10 +327,8 @@ public abstract class LocalStorage {
 	 * Helper method for local storage implementations that returns a filtering
 	 * predicate formed by predicates natively supported by the local storage.
 	 * 
-	 * @param predicate
-	 *            the predicate.
-	 * @param filter
-	 *            the predicate filter.
+	 * @param predicate the predicate.
+	 * @param filter the predicate filter.
 	 * @return
 	 */
 	protected static Predicate createFilteringPredicate(Predicate predicate, PredicateFilter filter) {
@@ -268,8 +385,3 @@ public abstract class LocalStorage {
 		return predicate;
 	}
 }
-
-/*
-*
-*
-* */

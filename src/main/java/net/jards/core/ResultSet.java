@@ -8,59 +8,132 @@ import java.util.*;
 import static net.jards.core.ResultSet.DocumentChange.ChangeType.*;
 
 /**
- * Self-updating result set.
+ * Self-updating result set of documents.
  */
 public class ResultSet {
 
+    /**
+     * checked to true if some documents changed in this result set after some operation
+     */
     private boolean newResult;
 
+    /**
+     * Listener for changes only. (Not finished implementation yet.)
+     */
     public interface ChangeListener {
-		void resultChanged(DocumentChanges change);
+        /**
+         * @param change changed documents that can be used
+         */
+        void resultChanged(DocumentChanges change);
 	}
 
+    /**
+     * Listener for actual documents list.
+     */
     public interface ActualDocumentsListener {
+        /**
+         * @param actualDocuments list with actual documents representing result of
+         */
         void resultChanged(DocumentList actualDocuments);
     }
 
+    /**
+     * Class representing one change in documents.
+     */
     static class DocumentChange{
 
+        /**
+         * Type of change: add, update, remove.
+         */
         enum ChangeType{
             ADD,
             UPDATE,
             REMOVE
         }
 
+        /**
+         * type of change
+         */
         ChangeType type;
+        /**
+         * changed document
+         */
         public Document document;
 
+        /**
+         * @param type type of change
+         * @param document changed document
+         */
         DocumentChange(ChangeType type, Document document){
             this.type = type;
             this.document = document;
         }
     }
 
+    /**
+     * predicate filtering this result
+     */
     private final Predicate predicate;
+    /**
+     * collection that created this result
+     */
     private final Collection collection;
+    /**
+     * Options for result. (Not used here yet.)
+     */
     private final ResultOptions resultOptions;
 
+    /**
+     * source documents (from database, permanent changes)
+     */
     private List<Document> sourceDocuments = new ArrayList<>();
+    /**
+     * final list of documents, result of source documents + overlays
+     */
     private List<Document> finalDocuments = new ArrayList<>();
 
+    /**
+     * map containing ordered overlays with documents
+     */
     private Map<DocumentChanges, DocumentChanges> overlaysWithChanges = new LinkedHashMap<>();
+    /**
+     * map of last changes, representing one final overlay (result of overlays)
+     */
     private Map<String, DocumentChange> lastChanges = new HashMap<>();
 
+    /**
+     * true if result set is closed, else false
+     */
     private boolean closed = false;
 
+    /**
+     * list of listeners listening for changes only
+     */
     private final List<ChangeListener> changeListeners = new ArrayList<>();
+    /**
+     * list of listeners listening for new documents list after some change
+     */
     private final List<ActualDocumentsListener> actualDocumentsListeners = new ArrayList<>();
+    /**
+     * RxObservables waiting for new changes
+     */
     private final List<PublishSubject<DocumentList>> rxObservablesListening = new LinkedList<>();
 
+    /**
+     * Constructor for result set with needed options, settings.
+     * @param predicate predicate filtering this result set
+     * @param collection collection of this result
+     * @param resultOptions options for this result set
+     */
     public ResultSet(Predicate predicate, Collection collection, ResultOptions resultOptions) {
         this.predicate = predicate;
         this.collection = collection;
         this.resultOptions = resultOptions;
     }
 
+    /**
+     * @param documents
+     */
     void setResult(List<Document> documents){
         this.sourceDocuments = new ArrayList<>();
         for (Document document:documents) {

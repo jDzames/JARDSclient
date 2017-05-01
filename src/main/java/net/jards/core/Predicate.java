@@ -6,6 +6,10 @@ import java.util.*;
 
 import static net.jards.core.Predicate.Operator.*;
 
+/**
+ * Abstract class providing interface for all predicates. User can create his own predicates
+ * and extend needed methods.
+ */
 public abstract class Predicate {
 
 	/**
@@ -21,13 +25,15 @@ public abstract class Predicate {
 	/**
 	 * Matches the document against the predicated.
 	 * 
-	 * @param document
-	 *            the document.
+	 * @param document the document.
 	 * @return true, if the document matches the predicates, false otherwise.
 	 */
 	public abstract boolean match(Document document);
 
-	public static final class And extends Predicate {
+    /**
+     * Predicate representing AND.
+     */
+    public static final class And extends Predicate {
 		private final List<Predicate> predicates;
 
 		public And(Predicate... predicates) {
@@ -81,7 +87,10 @@ public abstract class Predicate {
 		}
 	}
 
-	public static final class Or extends Predicate {
+    /**
+     * Predicate representing OR.
+     */
+    public static final class Or extends Predicate {
 
 		private final List<Predicate> predicates;
 
@@ -130,7 +139,10 @@ public abstract class Predicate {
 		}
 	}
 
-	public static final class Equals extends Predicate {
+    /**
+     * Predicate representing EQUALS ("==")
+     */
+    public static final class Equals extends Predicate {
 
 		private final String property;
 		private final Object value;
@@ -187,6 +199,9 @@ public abstract class Predicate {
         SmallerOrEquals
     }
 
+    /**
+     * Predicate represneting comparison ("==", "<", "<=", ">", ">=","!=")
+     */
     public static final class Compare extends Predicate {
 
         private final String property;
@@ -271,6 +286,9 @@ public abstract class Predicate {
         }
     }
 
+    /**
+     * Predicate to compare 2 properties, returns true if they are equals.
+     */
     public static final class EqualProperties extends Predicate {
 
         private final String property;
@@ -303,6 +321,9 @@ public abstract class Predicate {
         }
     }
 
+    /**
+     * Predicate to compare properties by selected operator.
+     */
     public static final class CompareProperties extends Predicate {
 
         private final String property;
@@ -374,7 +395,5 @@ public abstract class Predicate {
         }
     }
 
-	//compare: bigger, less, bigger or equals, less or equals
-    //equal properties , compare properties
 
 }

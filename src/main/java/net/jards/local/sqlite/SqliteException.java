@@ -3,7 +3,7 @@ package net.jards.local.sqlite;
 import net.jards.errors.LocalStorageException;
 
 /**
- * Created by jDzama on 28.1.2017.
+ * Exception for SQLite implementation of LocalStorage.
  */
 public class SqliteException extends LocalStorageException {
 
@@ -19,21 +19,33 @@ public class SqliteException extends LocalStorageException {
         this.innerException = innerException;
     }
 
+    /**
+     * @return id of this exception
+     */
     @Override
     public int id() {
         return this.id;
     }
 
+    /**
+     * @return source of this exception
+     */
     @Override
     public String source() {
         return this.source;
     }
 
+    /**
+     * @return message of this exception
+     */
     @Override
     public String message() {
         return this.message;
     }
 
+    /**
+     * @return exception that caused this exception
+     */
     @Override
     public Exception innerException() {
         return this.innerException;

@@ -1,7 +1,7 @@
 package net.jards.errors;
 
 /**
- * Created by jDzama on 8.1.2017.
+ * Error in remotes storage used in RemoteStorageListener.
  */
 public interface RemoteStorageError {
 

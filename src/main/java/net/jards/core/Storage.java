@@ -11,11 +11,14 @@ import static net.jards.core.RemoteDocumentChange.ChangeType.*;
 import static net.jards.core.StorageSetup.RemoteLoginType.DemandLogin;
 
 /**
- * Transparent storage implementation that combines data from local and remote
- * storage. The implementation is thread-safe.
+ * Main/core class of system, using local and remote storage to achieve transparent synchronisation and offline mode.
+ * User can perform operations through methods of this class.
  */
 public class Storage {
 
+    /**
+     * Class that executes local storage oriented  requests from storage.
+     */
     private class RequestsLocalHandlingThread extends Thread {
 		@Override
 		public void run() {
@@ -105,6 +108,10 @@ public class Storage {
 		}
     }
 
+    /**
+     * Class that executes remote storage oriented requests from system.
+     * This class will possibly be part of RemoteStorage in future. (pros and cons on both sides)
+     */
     private class RequestsRemoteHandlingThread extends Thread {
         @Override
         public void run() {
@@ -325,7 +332,11 @@ public class Storage {
 
             @Override
             public void unsubscribed(String subscriptionName, int subscriptionId, RemoteStorageError error) {
-                System.out.println("Server stopped subscription: "+subscriptionName);
+                synchronized (activeSubscriptions){
+                    if (activeSubscriptions.containsKey(subscriptionName)){
+                        activeSubscriptions.remove(subscriptionName);
+                    }
+                }
             }
 
             @Override
@@ -493,7 +504,9 @@ public class Storage {
         return remoteStorage;
     }
 
-    public ExecutionRequest subscribe(String subscriptionName, Object... arguments) {
+    private final Map<String, ExecutionRequest> activeSubscriptions = new HashMap<>();
+
+    public void subscribe(String subscriptionName, Object... arguments) {
         ExecutionRequest executionRequest = new ExecutionRequest(null);
         executionRequest.setRequestType(Subscribe);
         executionRequest.setSubscriptionName(subscriptionName);
@@ -502,14 +515,26 @@ public class Storage {
             pendingRequestsRemote.offer(executionRequest);
             pendingRequestsRemote.notify();
         }
-        return executionRequest;
+        synchronized (activeSubscriptions){
+            activeSubscriptions.put(subscriptionName, executionRequest);
+        }
 	}
 
     /**
      * Unsubscribes from active subscription.
-     * @param executionRequest execution request you want to unsubscribe, the one returned by by subscribe method
+     * @param subscriptionName name of subscription that should be unsubscribed
      */
-    public void unsubscribe(ExecutionRequest executionRequest){
+    public void unsubscribe(String subscriptionName, Object... arguments){
+        ExecutionRequest executionRequest;
+        synchronized (activeSubscriptions){
+            if (!activeSubscriptions.containsKey(subscriptionName)){
+                return;
+            }
+           executionRequest = activeSubscriptions.get(subscriptionName);
+        }
+        if (executionRequest==null){
+            return;
+        }
         executionRequest.setRequestType(Unsubscribe);
         synchronized (pendingRequestsRemote){
             pendingRequestsRemote.offer(executionRequest);

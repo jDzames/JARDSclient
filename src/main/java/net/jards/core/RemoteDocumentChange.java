@@ -1,36 +1,73 @@
 package net.jards.core;
 
+/**
+ * Class representing one document change made on server, sent to Storage through RemoteStorageListener.
+ */
 public class RemoteDocumentChange {
 
-	public enum ChangeType {
+    /**
+     * Type of change: insert, update, remove.
+     */
+    public enum ChangeType {
 		INSERT, UPDATE, REMOVE
 	}
 
-	private  ChangeType type;
-	private  String collection;
-	private  String id;
-	private  String data;
+    /**
+     * Change type of this
+     */
+    private  ChangeType type;
+    /**
+     * collection of changed document
+     */
+    private  String collection;
+    /**
+     * id of changed document
+     */
+    private  String id;
+    /**
+     * content of changed document
+     */
+    private  String data;
 
-	public RemoteDocumentChange(ChangeType type, String collection, String id, String data){
+    /**
+     * Constructor for RemoteDocumentChange
+     * @param type type of change
+     * @param collection collection where corresponding document belongs
+     * @param id if of corresponding document
+     * @param data data of corresponding document
+     */
+    public RemoteDocumentChange(ChangeType type, String collection, String id, String data){
 		this.type = type;
 		this.collection = collection;
 		this.id = id;
 		this.data =data;
 	}
 
-	public ChangeType getType() {
+    /**
+     * @return type of change
+     */
+    public ChangeType getType() {
 		return type;
 	}
 
-	public String getCollection() {
+    /**
+     * @return collection of corresponding document
+     */
+    public String getCollection() {
 		return collection;
 	}
 
-	public String getData() {
+    /**
+     * @return content of corresponding document
+     */
+    public String getData() {
 		return data;
 	}
 
-	public String getId() {
+    /**
+     * @return id of corresponding document
+     */
+    public String getId() {
 		return id;
 	}
 }

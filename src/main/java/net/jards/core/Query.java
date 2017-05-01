@@ -1,5 +1,8 @@
 package net.jards.core;
 
+/**
+ * Class for query parameters. Not finished, only scratch as of now.
+ */
 public class Query {
 
     //http://www.javaworld.com/article/2074938/core-java/too-many-parameters-in-java-methods-part-3-builder-pattern.html

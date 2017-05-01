@@ -3,6 +3,10 @@ package net.jards.core;
 import net.jards.errors.LocalStorageException;
 import net.jards.errors.QueryException;
 
+/**
+ * Class for building queries with predicates and options in more natural way (StorIO style?).
+ * Only scratch as of now, not finished.
+ */
 class QueryBuilder {
 
     private String rawQuery;
@@ -57,6 +61,5 @@ class QueryBuilder {
 }
 
 /*
-* ala storio
-*
+* ako StorIO ?
 * */

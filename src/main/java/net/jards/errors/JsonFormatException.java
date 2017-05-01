@@ -1,7 +1,7 @@
 package net.jards.errors;
 
 /**
- * Created by jDzama on 21.3.2017.
+ * Exception used in JSONPropertyExtractor.
  */
 public class JsonFormatException extends Exception {
 
@@ -13,10 +13,16 @@ public class JsonFormatException extends Exception {
         this.innerException = innerException;
     }
 
+    /**
+     * @return  message of this exception
+     */
     public String message() {
         return message;
     }
 
+    /**
+     * @return inner exception that caused this exception to be thrown
+     */
     public Exception innerException() {
         return innerException;
     }

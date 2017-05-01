@@ -5,6 +5,7 @@ import java.util.UUID;
 /**
  * General class used in method calls and operation requests.
  * Holds needed data for system to execute selected operation. Created in Storage.
+ * Later referred to this as to "request".
  */
 public class ExecutionRequest {
 
@@ -24,55 +25,101 @@ public class ExecutionRequest {
 	 */
 	private final String id;
 
-	private String methodName;
+    /**
+     * Name of method that will be called on server (speculation with same name used locally).
+     */
+    private String methodName;
 
+    /**
+     * Name of subscription if it's type subscribe
+     */
     private String subscriptionName;
 
+    /**
+     * id that can be given to this request by remote storage (used in DDP) to find this after confirmation
+     */
     private int remoteCallsId;
 
-	private Transaction transaction;
+    /**
+     * transaction for this request (with possible DocumentChanges after execution)
+     */
+    private Transaction transaction;
 
-	private ExecutionContext context;
+    /**
+     * context for this request
+     */
+    private ExecutionContext context;
 
-	private Object[] attributes;
+    /**
+     * User specified attributes
+     */
+    private Object[] attributes;
 
+    /**
+     * Seed given to this request by Storage
+     */
     private String seed;
 
-	private TransactionRunnable runnable;
+    /**
+     * User specified runnable that will be executed
+     */
+    private TransactionRunnable runnable;
 
+    /**
+     * Type of this request
+     */
     private RequestType requestType;
 
+    /**
+     * boolean variable for await method
+     */
     private boolean waiting = false;
 
-	public ExecutionRequest(Transaction transaction) {
+    /**
+     * Public constructor with transaction (ExecutionRequest should always be created by system)
+     * @param transaction transaction for this request
+     */
+    public ExecutionRequest(Transaction transaction) {
 		this.transaction = transaction;
 		id = UUID.randomUUID().toString();
 		methodName = "";
         subscriptionName = "";
 	}
 
+    /**
+     * @return true if this request is of type ExecuteLocally
+     */
     public boolean isExecuteLocally() {
         return this.requestType == RequestType.ExecuteLocally;
     }
 
+    /**
+     * @return true if this request is of type Execute
+     */
     public boolean isExecute() {
         return this.requestType == RequestType.Execute;
     }
+
+    /**
+     * @return true if this request is of type Call
+     */
     public boolean isCall() {
         return this.requestType == RequestType.Call;
     }
 
+    /**
+     * @return true if this request is of type Subscribe
+     */
     public boolean isSubscribe(){
         return this.requestType == RequestType.Subscribe;
     }
 
+    /**
+     * @return true if this request is of type Unsubscribe
+     */
     public boolean isUnsubscribe(){
         return this.requestType == RequestType.Unsubscribe;
     }
-
-    public boolean isCompleted() {
-		return false;
-	}
 
 	/**
 	 * Wait for completing execution request.
@@ -100,81 +147,129 @@ public class ExecutionRequest {
         }
     }
 
+    /**
+     * @param subscriptionName name specified to this subscription by user
+     */
     void setSubscriptionName(String subscriptionName) {
         this.subscriptionName = subscriptionName;
     }
 
+    /**
+     * @param remoteCallsId id that can be specified by RemoteStorage implementation
+     */
     public void setRemoteCallsId(int remoteCallsId) {
         this.remoteCallsId = remoteCallsId;
     }
 
+    /**
+     * @param attributes given attributes by user
+     */
     void setAttributes(Object[] attributes) {
 		this.attributes = attributes;
 	}
 
-	void setRunnable(TransactionRunnable runnable) {
+    /**
+     * @param runnable runnable specified by user (set here by Storage)
+     */
+    void setRunnable(TransactionRunnable runnable) {
 		this.runnable = runnable;
 	}
 
-	void setMethodName(String methodName) {
+    /**
+     * @param methodName name for remote call (simulation name)
+     */
+    void setMethodName(String methodName) {
 		this.methodName = methodName;
 	}
 
-	void setContext(ExecutionContext context) {
+    /**
+     * @param context context set for this request by Storage
+     */
+    void setContext(ExecutionContext context) {
 		this.context = context;
 	}
 
-	void setRequestType(RequestType requestType) {
+    /**
+     * @param requestType type of index (specified in appropriate method in Storage)
+     */
+    void setRequestType(RequestType requestType) {
         this.requestType = requestType;
     }
 
+    /**
+     * @param seed for this request (used in speculation)
+     */
     void setSeed(String seed) {
         this.seed = seed;
     }
 
+    /**
+     * @return seed of this request
+     */
     String getSeed() {
         return seed;
     }
 
+    /**
+     * @return name of this subscription (empty string if its not subscribe type)
+     */
     public String getSubscriptionName() {
         return subscriptionName;
     }
 
+    /**
+     * @return id of remote call if was specified
+     */
     public int getRemoteCallsId() {
         return remoteCallsId;
     }
 
+    /**
+     * @return attributes for this request
+     */
     public Object[] getAttributes() {
 		return attributes;
 	}
 
-	String getId() {
+    /**
+     * @return general id of this request
+     */
+    String getId() {
 		return id;
 	}
 
-	public String getMethodName() {
+    /**
+     * @return method name of this request (empty string if it is not call type)
+     */
+    public String getMethodName() {
 		return methodName;
 	}
 
-	ExecutionContext getContext() {
+    /**
+     * @return context of this request
+     */
+    ExecutionContext getContext() {
 		return context;
 	}
 
-	Transaction getTransaction() {
+    /**
+     * @return transaction of this request
+     */
+    Transaction getTransaction() {
 		return transaction;
 	}
 
-	TransactionRunnable getRunnable() {
+    /**
+     * @return runnable that will be used
+     */
+    TransactionRunnable getRunnable() {
 		return runnable;
 	}
 
-	public RequestType getRequestType() {
+    /**
+     * @return this request type
+     */
+    public RequestType getRequestType() {
         return requestType;
     }
 }
-
-
-/*
-* tazko si predtavit co tu ma byt
-*
-* */

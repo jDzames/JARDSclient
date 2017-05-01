@@ -1,7 +1,7 @@
 package net.jards.errors;
 
 /**
- * Created by jDzama on 8.2.2017.
+ * Exception used in query execution.
  */
 public class QueryException extends LocalStorageException {
 

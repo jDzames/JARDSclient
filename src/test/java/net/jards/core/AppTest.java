@@ -40,9 +40,8 @@ public class AppTest
         //creating app
         StorageSetup storageSetup = new StorageSetup();
         storageSetup.setPrefix("tests_");
-        storageSetup.addCollectionSetup("LocalTest", true, "example");
-        boolean jeLokalna = false;
-        storageSetup.addCollectionSetup("tasks", false, "text");
+        storageSetup.addCollectionSetup("LocalTest", true);
+        storageSetup.addCollectionSetup("tasks", false);
         DDPConnectionSettings connectionSettings = new DDPConnectionSettings("localhost",
                 3000, Username, "testik", "testik");
         RemoteStorage remoteStorage = new DDPRemoteStorage(storageSetup, connectionSettings);
@@ -61,7 +60,7 @@ public class AppTest
             //execute method with query
             storage.execute(new TransactionRunnableQuery());
 
-            //storage.subscribe("tasks");
+            storage.subscribe("tasks");
             //storage.call("tasks.insertWithSeed", "{\"text\":\"for seed test\"}");
             //storage.executeAsync(new TransactionRunnableExecutions());
 

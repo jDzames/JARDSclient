@@ -1,7 +1,7 @@
 package net.jards.errors;
 
 /**
- * Created by jDzama on 30.4.2017.
+ * Originally exception used in transaction check.
  */
 public class TransactionException extends RuntimeException {
 

@@ -13,7 +13,7 @@ public class SQLiteLocalStorage extends LocalStorage {
     private Connection connection;
     private final String localDbAddress; //"jdbc:sqlite:test.db"
 
-    public SQLiteLocalStorage(StorageSetup storageSetup, String databaseConnection) throws LocalStorageException {
+    public SQLiteLocalStorage(StorageSetup storageSetup, String databaseConnection) {
         super(storageSetup);
         localDbAddress = databaseConnection;
     }
@@ -148,14 +148,14 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
         sql.append(");");
         //indexes values
-        List<String> indexValues = getIndexesValues(collectionName, document.getJsonData());
+        List<String> indexValues = getIndexesValues(collectionName, document.getContent());
         //perform createDocument
         PreparedStatement statement = null;
         try {
             statement = connection.prepareStatement(sql.toString());
             statement.setString(1, document.getId());
             statement.setString(2, collectionName);
-            statement.setString(3, document.getJsonData());
+            statement.setString(3, document.getContent());
             for (int i =0; i< indexValues.size(); i++){
                 statement.setString(4+i, indexValues.get(i));
             }
@@ -195,13 +195,13 @@ public class SQLiteLocalStorage extends LocalStorage {
         }
         sql.append(" where id= ? ;");
         //index values
-        List<String> indexValues = getIndexesValues(collectionName, document.getJsonData());
+        List<String> indexValues = getIndexesValues(collectionName, document.getContent());
         //statement
         PreparedStatement statement = null;
         int idx = 1;
         try {
             statement = connection.prepareStatement(sql.toString());
-            statement.setString(idx, document.getJsonData());
+            statement.setString(idx, document.getContent());
             idx++;
             for (String indexValue:indexValues){
                 statement.setString(idx, indexValue);

@@ -2,8 +2,15 @@ package net.jards.core;
 
 import java.util.UUID;
 
+/**
+ * General class used in method calls and operation requests.
+ * Holds needed data for system to execute selected operation. Created in Storage.
+ */
 public class ExecutionRequest {
 
+    /**
+     * Type of request : ExecuteLocally, Execute, Call, Subscribe, Unsubscribe.
+     */
     public enum RequestType{
         ExecuteLocally,
         Execute,

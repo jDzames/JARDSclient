@@ -20,7 +20,10 @@ public abstract class LocalStorage {
 	// private final CollectionSetup setupCollection;
 	private final JSONPropertyExtractor jsonPropertyExtractor;
 
-	public LocalStorage(StorageSetup storageSetup) throws LocalStorageException {
+	public LocalStorage(StorageSetup storageSetup) {
+        if (storageSetup==null || storageSetup.getPrefix()==null || "".equals(storageSetup.getPrefix())){
+            throw new IllegalArgumentException("Specify StorageSetup with prefix!");
+        }
 		this.jsonPropertyExtractor = storageSetup.getJsonPropertyExtractor();
 		this.prefix = storageSetup.getPrefix();
 		this.collections = storageSetup.getLocalCollections();
@@ -74,7 +77,7 @@ public abstract class LocalStorage {
 			}
 			Collection hashCollection = new Collection(setupHashCollection.getName(), true, null);
 			Document hashDocument = new Document(hashCollection, "0");
-			hashDocument.setJsonData("" + setupHash);
+			hashDocument.setContent("" + setupHash);
 			this.removeCollection(setupHashCollection);
 			this.addCollection(setupHashCollection);
 			this.createDocument(setupHashCollection.getName(), hashDocument);

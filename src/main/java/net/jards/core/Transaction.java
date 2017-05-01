@@ -26,9 +26,9 @@ public class Transaction {
 		// storage -> localStorage -> sql/other.. createDocument
 
         // createDocument document
-        String jsonData = document.getJsonData();
+        String jsonData = document.getContent();
         document = new Document(collection, idGenerator.getId());
-        document.setJsonData(jsonData);
+        document.setContent(jsonData);
 
         //add to local changes
         localChanges.addDocument(document);

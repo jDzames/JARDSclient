@@ -4,9 +4,15 @@ import net.jards.errors.JsonFormatException;
 
 import java.util.*;
 
+/**
+ * Class representing document in our system - base unit holding data.
+ */
 public class Document {
 
-	private static final JSONPropertyExtractor DEFAULT_PROPERTY_EXTRACTOR = new DefaultJSONPropertyExtractor();
+    /**
+     * default property extractor
+     */
+    private static final JSONPropertyExtractor DEFAULT_PROPERTY_EXTRACTOR = new DefaultJSONPropertyExtractor();
 
 	/**
 	 * The collection to which the document belongs.
@@ -19,11 +25,14 @@ public class Document {
 	private final String id;
 
 	/**
-	 * Raw JSON data.
+	 * Raw (JSON) data, content of document.
 	 */
-	private String jsonData;
+	private String content;
 
-	private final JSONPropertyExtractor propertyExtractor = DEFAULT_PROPERTY_EXTRACTOR;
+    /**
+     * extractor for this document
+     */
+    private final JSONPropertyExtractor propertyExtractor = DEFAULT_PROPERTY_EXTRACTOR;
 
 	/**
 	 * Map with pre-fetched property values.
@@ -31,69 +40,95 @@ public class Document {
 	private Map<String, Object> propertyCache = null;
 
 	/**
-	 * Constructs a document that is not associated with any collection.
+	 * Constructs a document that is not associated with any collection, neither has id.
 	 */
     Document() {
         this.collection = null;
         id = null;
-        jsonData = "";
+        content = "";
     }
 
-	public Document(String content) {
+    /**
+     * Creates document without collection or id, only with content.
+     * @param content content for this document
+     */
+    public Document(String content) {
 		this.collection = null;
 		id = null;
         if (content==null){
-            jsonData = "";
+            this.content = "";
         } else {
-            jsonData = content;
+            this.content = content;
         }
 	}
 
 	/**
 	 * Package protected constructor of a document in a collection.
 	 * 
-	 * @param collection
-	 *            the collection where the document has been inserted
-	 * @param id
-	 *            the identifier of the document.
+	 * @param collection the collection where the document has been inserted
+	 * @param id the identifier of the document.
 	 */
 	Document(Collection collection, String id) {
 		this.collection = collection;
 		this.id = id;
 	}
 
-	Document(Map<String, String> documentMap, Storage storage) {
+    /**
+     * Creates document from map; used in Collection.
+     * @param documentMap map containing document content, id and collection
+     * @param storage storage reference
+     */
+    Document(Map<String, String> documentMap, Storage storage) {
 		this.collection = storage.getCollection(documentMap.get("collection"));
 		this.id = documentMap.get("id");
-		this.jsonData = documentMap.get("jsondata");
+		this.content = documentMap.get("jsondata");
 	}
 
-	public Collection getCollection() {
+    /**
+     * @return this document's collection reference
+     */
+    public Collection getCollection() {
 		return collection;
 	}
 
-	public String getId() {
+    /**
+     * @return id of this document
+     */
+    public String getId() {
 		return id;
 	}
 
-	public String getJsonData() {
-		return jsonData;
+    /**
+     * @return content of this document in string format
+     */
+    public String getContent() {
+		return content;
 	}
 
-	void setJsonData(String jsonData) {
-		this.jsonData = jsonData;
+    /**
+     * Sets document content to specified content
+     * @param content content for this document
+     */
+    void setContent(String content) {
+		this.content = content;
 		if (propertyCache != null) {
 			propertyCache.clear();
 		}
 	}
 
-	public Object getPropertyValue(String propertyName) throws JsonFormatException {
+    /**
+     * Gets value of specified property from this document content.
+     * @param propertyName name of property
+     * @return value of specified property
+     * @throws JsonFormatException exception thrown if problem with parsing content happens in extractor
+     */
+    public Object getPropertyValue(String propertyName) throws JsonFormatException {
 		Object result = null;
 
 		if ((propertyCache != null) && propertyCache.containsKey(propertyName)) {
 			result = propertyCache.get(propertyName);
 		} else {
-			result = propertyExtractor.extractPropertyValue(jsonData, propertyName);
+			result = propertyExtractor.extractPropertyValue(content, propertyName);
 		}
 
 		if (propertyCache != null) {
@@ -103,7 +138,11 @@ public class Document {
 		return result;
 	}
 
-	public void prefetchProperties(List<String> propertyNames) {
+    /**
+     * Prefetches properties values in this document.
+     * @param propertyNames list of property names
+     */
+    public void prefetchProperties(List<String> propertyNames) {
 		Set<String> propertyNameSet = new HashSet<>(propertyNames);
 		if (propertyCache != null) {
 			propertyNameSet.removeAll(propertyCache.keySet());
@@ -115,8 +154,8 @@ public class Document {
 
         Map<String, Object> extractedProperties = null;
         try {
-            extractedProperties = propertyExtractor.extractPropertyValues(jsonData,
-                    new ArrayList<String>(propertyNameSet));
+            extractedProperties = propertyExtractor.extractPropertyValues(content,
+                    new ArrayList<>(propertyNameSet));
         } catch (JsonFormatException e) {
             e.printStackTrace();
         }
@@ -128,21 +167,23 @@ public class Document {
 		propertyCache.putAll(extractedProperties);
 	}
 
-	public Map<String, String> toMap() {
+    /**
+     * Creates map from this document.
+     * @return map created from this document
+     */
+    public Map<String, String> toMap() {
 		Map<String, String> docMap = new HashMap<>();
 		docMap.put("id", this.id);
 		docMap.put("collection", this.collection.getName());
-		docMap.put("jsonData", this.jsonData);
+		docMap.put("content", this.content);
 		return docMap;
 	}
 
+    /**
+     * @return String representation of this document.
+     */
     @Override
     public String toString() {
-        return "{"+super.toString() + ": { ID:"+id+", COLLECTION:"+collection.getName()+", JSONDATA:"+jsonData+" }";
+        return "{"+super.toString() + ": { ID:"+id+", COLLECTION:"+collection.getName()+", JSONDATA:"+ content +" }";
     }
 }
-
-/*
- * doplnit
- *
- */

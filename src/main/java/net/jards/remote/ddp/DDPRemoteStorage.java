@@ -236,7 +236,7 @@ public class DDPRemoteStorage extends RemoteStorage {
             Map<String, Object> documentMap = new HashMap<>();
             documentMap.put("_id", document.getId());
             documentMap.put("collection", collectionName);
-            documentMap.put("jsondata", document.getJsonData());
+            documentMap.put("jsondata", document.getContent());
             int methodId = ddpClient.collectionInsert(collectionName, documentMap);
             methods.put(methodId, request);
             //ddpObserver.addMethod(methodId, "collectionInsert");
@@ -248,7 +248,7 @@ public class DDPRemoteStorage extends RemoteStorage {
             Map<String, Object> documentMap = new HashMap<>();
             documentMap.put("_id", document.getId());
             documentMap.put("collection", collectionName);
-            documentMap.put("jsondata", document.getJsonData());
+            documentMap.put("jsondata", document.getContent());
             String docId = document.getId();
             int methodId = ddpClient.collectionUpdate(collectionName, docId, documentMap);
             methods.put(methodId, request);

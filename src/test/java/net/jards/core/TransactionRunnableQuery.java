@@ -11,15 +11,29 @@ public class TransactionRunnableQuery implements TransactionRunnable {
 
         Collection collection = context.getCollection("tasks");
         try {
+            //find one simple example
+            Document najdeny = collection.findOne();
+            String porovnavanePole = "text";
+            String hodnota = "text niektoreho dokumentu";
+            Predicate podmienka = new Predicate.Equals(porovnavanePole, hodnota);
+            Document najdenyDocument = collection.findOne(podmienka);
+
+
+            //find all with changes
             ResultSet resultSet = collection.find(null, null);
             //System.out.println(resultSet.getDocuments().toString());
-            System.out.println("query running");
+            DocumentList zoznamDokumentov = resultSet.getDocuments();
+            //get with listener notified on changes
             resultSet.addActualDocumentsListener(new ResultSet.ActualDocumentsListener() {
                 @Override
                 public void resultChanged(DocumentList actualDocuments) {
                     System.out.println("Result set changed: "+actualDocuments.toString());
                 }
             });
+            //get as rx changes
+            resultSet.getAsRxList()
+                    .subscribe(actualList ->
+                            System.out.println("RX " + actualList.toString()));
 
         } catch (LocalStorageException e) {
             e.printStackTrace();

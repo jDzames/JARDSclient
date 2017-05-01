@@ -8,7 +8,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 /**
- * Ordered list of documents. Uses ArrayList inside, just simplifies works.
+ * Ordered list of documents. Uses ArrayList inside, just simplifies work.
  */
 public class DocumentList extends AbstractList<Document> {
 

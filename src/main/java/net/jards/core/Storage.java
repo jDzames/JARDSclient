@@ -275,7 +275,7 @@ public class Storage {
                         e.printStackTrace();
                         continue;
                     }
-                    document.setJsonData(change.getData());
+                    document.setContent(change.getData());
                     if (change.getType() == INSERT){
                         documentChanges.addDocument(document);
                     } else if (change.getType() == UPDATE){
@@ -636,7 +636,9 @@ public class Storage {
 
 	/**
 	 * Starts the self-synchronizing storage.
-	 */
+     * @param sessionState    session which will be sent to remote server to try to continue work
+     * @throws LocalStorageException when problem with setting collections happens
+     */
 	public void start(String sessionState) throws LocalStorageException {
         session = sessionState;
         running = true;
@@ -661,6 +663,27 @@ public class Storage {
         //start with session
 		//remoteStorage.start(sessionState);
 	}
+
+    /**
+     * Starts the self-synchronizing storage.
+     */
+    public void start() throws LocalStorageException {
+        session = null;
+        running = true;
+        disconnectedFromRemoteStorage = true;
+
+        //start local storage and run thread for local work (in this order)
+        localStorage.start();
+
+        requestsLocalHandlingThread = new RequestsLocalHandlingThread();
+        requestsLocalHandlingThread.start();
+        //TODO read and return queues from database in localStorage start (unconfirmed and pending work)
+
+        //run thread for remote work and start remotes storage
+        requestsRemoteHandlingThread = new RequestsRemoteHandlingThread();
+        requestsRemoteHandlingThread.start();
+
+    }
 
 	/**
 	 * Stops the self-synchronizing storage.

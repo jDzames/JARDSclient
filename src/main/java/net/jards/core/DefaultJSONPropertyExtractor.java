@@ -9,8 +9,12 @@ import java.util.List;
 import java.util.Map;
 
 
+/**
+ * Default extractor we implemented to use in system. Supports classic ways to get properties like dot
+ * and array brackets (ie. prop1.prop2.array1[0].prop3). We choose this way cause we wanted to use
+ * this style of queries and also we wanted lightweight solution.
+ */
 public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
-
 
     /**
      * Extracts given values from json string.
@@ -51,7 +55,14 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
         return extractPropertyValueFromJson(jsonOA, propertyPath);
     }
 
-    public Object extractPropertyValueFromJson(JsonOA json, String propertyPath) throws JsonFormatException {
+    /**
+     * Private method which executes extracting.
+     * @param json JSOn object or array
+     * @param propertyPath specified name of property which value to extract
+     * @return result object
+     * @throws JsonFormatException throws exception if encounters problems with parsing (ie. wrong JSON..)
+     */
+    private Object extractPropertyValueFromJson(JsonOA json, String propertyPath) throws JsonFormatException {
         if (propertyPath == null )
             return null;
         if (propertyPath.length()== 0)
@@ -88,6 +99,9 @@ public class DefaultJSONPropertyExtractor implements JSONPropertyExtractor{
     }
     }
 
+    /**
+     * Internal general class for JSOn object or array.
+     */
     public class JsonOA{
 
         private JsonElement jsonElement;

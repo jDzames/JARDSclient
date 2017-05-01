@@ -47,6 +47,11 @@ public class StorageSetup {
         localCollections.put(name, collectionSetup);
     }
 
+    public void addCollection(String name){
+        CollectionSetup collectionSetup = new CollectionSetup(prefix, name, false);
+        localCollections.put(name, collectionSetup);
+    }
+
     public void addCollectionSetup(CollectionSetup collectionSetup){
         if (collectionSetup.getPrefix() != this.prefix){
             return; //TODO exception here? (wrong prefix)

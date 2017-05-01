@@ -98,7 +98,8 @@ public abstract class LocalStorage {
 	/**
 	 * Local db uses this setup for the first time or user has changed it. Drop
 	 * old collections, add new. Also setup hash collection.
-	 */
+     * @throws LocalStorageException exception is thrown if problems with write to database happens
+     */
 	private void createCollectionsFromSetup() throws LocalStorageException {
 		try {
 			connectDB();
@@ -168,6 +169,7 @@ public abstract class LocalStorage {
 	 * (Using returned requests not implemented yet).
      *
 	 * @return List of saved requests
+     * @throws LocalStorageException exception is thrown if problems to read or write to database happens
 	 */
 	List<ExecutionRequest> start() throws LocalStorageException {
 		try {
@@ -329,7 +331,7 @@ public abstract class LocalStorage {
 	 * 
 	 * @param predicate the predicate.
 	 * @param filter the predicate filter.
-	 * @return
+	 * @return predicate using only supported predicates
 	 */
 	protected static Predicate createFilteringPredicate(Predicate predicate, PredicateFilter filter) {
 		if (predicate == null) {

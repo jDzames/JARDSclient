@@ -151,7 +151,7 @@ public class Transaction {
 	}
 
     /**
-     * @return
+     * @return local changes made in this transaction
      */
     DocumentChanges getLocalChanges() {
         return localChanges;

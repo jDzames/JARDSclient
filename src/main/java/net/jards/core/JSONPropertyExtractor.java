@@ -15,6 +15,7 @@ public interface JSONPropertyExtractor {
      * @param jsonString json string from which values will be extracted
      * @param propertyPaths specified names of properties which values to extract
      * @return map with property paths and values
+     * @throws JsonFormatException exception thrown if parsing error happens
      */
     Map<String, Object> extractPropertyValues(String jsonString, List<String> propertyPaths) throws JsonFormatException;
 
@@ -23,6 +24,7 @@ public interface JSONPropertyExtractor {
      * @param jsonString json string from which you want to extract value
      * @param propertyPath specified name of property which value to extract
      * @return value of specified property
+     * @throws JsonFormatException exception thrown if parsing error happens
      */
     Object extractPropertyValue(String jsonString, String propertyPath) throws JsonFormatException;
 

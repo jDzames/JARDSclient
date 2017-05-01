@@ -11,7 +11,7 @@ public interface RemoteStorageListener {
     /**
      * Use in RemoteStorage implementation to inform about completion of some request execution on server
      * Save used requests in methods and send them through this method back to confirm end of execution.
-     * @param request
+     * @param request ExecutionRequest that has been completed
      */
     void requestCompleted(ExecutionRequest request);
 
@@ -30,7 +30,7 @@ public interface RemoteStorageListener {
 
     /**
      * Use in RemoteStorage implementation to inform about connection change.
-     * @param connection
+     * @param connection connection change object
      */
     void connectionChanged(Connection connection);
 

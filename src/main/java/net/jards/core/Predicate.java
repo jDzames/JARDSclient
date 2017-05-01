@@ -200,7 +200,7 @@ public abstract class Predicate {
     }
 
     /**
-     * Predicate represneting comparison ("==", "<", "<=", ">", ">=","!=")
+     * Predicate representing comparison of property and value.
      */
     public static final class Compare extends Predicate {
 

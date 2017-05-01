@@ -594,6 +594,7 @@ public class Storage {
      *
      * @param collectionName name of collection
      * @return selected collection or new created (not local) collection
+     * @throws LocalStorageException exception thrown if problems with database reads/writes happens
      */
     Collection getOrCreateCollection(String collectionName) throws LocalStorageException {
         CollectionSetup collectionSetup = localStorage.getCollectionSetup(collectionName);
@@ -655,6 +656,7 @@ public class Storage {
     /**
      * Unsubscribes from active subscription.
      * @param subscriptionName name of subscription that should be unsubscribed
+     * @param arguments optional arguments
      */
     public void unsubscribe(String subscriptionName, Object... arguments){
         ExecutionRequest executionRequest;
@@ -856,6 +858,7 @@ public class Storage {
 
     /**
      * Starts the self-synchronizing storage.
+     * @throws LocalStorageException exception thrown if problems with database reads/writes happens
      */
     public void start() throws LocalStorageException {
         session = null;

@@ -61,8 +61,8 @@ public class DDPObserver extends DDPListener implements Observer {
 
     /**
      * Creates DDPObserver instance with remote storage reference and given session.
-     * @param ddpRemoteStorage
-     * @param session
+     * @param ddpRemoteStorage DDPRemoteStorage reference
+     * @param session given session string
      */
     public DDPObserver(DDPRemoteStorage ddpRemoteStorage, String session) {
         this.ddpRemoteStorage = ddpRemoteStorage;

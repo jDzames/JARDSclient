@@ -176,9 +176,9 @@ public class DDPRemoteStorage extends RemoteStorage {
                     if (!ddpClient.getState().equals(DDPClient.CONNSTATE.Connected)){
                         //setReadyForConnect();
                         ddpClient.disconnect();
-                        Thread.sleep(500);
+                        Thread.sleep(750);
                         ddpClient.connect();
-                        subscribed_askedForNewDataset = false;
+                        //subscribed_askedForNewDataset = false;
                     }
                 }
                 Thread.sleep(750);
@@ -427,7 +427,7 @@ public class DDPRemoteStorage extends RemoteStorage {
                     e.printStackTrace();
                 }*/
                 systemWasConnected = false;
-                System.out.println("Subscribe sent on server after being offline");
+                //System.out.println("Subscribe sent on server after being offline");
                 Map<Integer, ExecutionRequest> subs = new LinkedHashMap<>(subscriptions);
                 subs.forEach((subId, request) ->
                         this.subscribe(request.getSubscriptionName(), request)

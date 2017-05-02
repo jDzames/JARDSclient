@@ -284,7 +284,7 @@ public class Storage {
 		remoteStorage.setListener(new RemoteStorageListener() {
 
             public void requestCompleted(ExecutionRequest request) {
-                System.out.println("REQUEST COMPLETED --- "+request.getMethodName());
+                //System.out.println("REQUEST COMPLETED --- "+request.getMethodName());
 
 				if (request.isCall()){
                     //remove request from pending/unconfirmed...

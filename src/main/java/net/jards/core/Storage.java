@@ -41,7 +41,8 @@ public class Storage {
                                 } else {
                                     DocumentChanges changes = updateDbRequest.getDocumentChanges();
                                     localStorage.applyDocumentChanges(changes);
-                                    applyChangesOnUnconfirmedRequests(changes);
+                                    //next line - overwrite overlay changes with server data or not?
+                                    //applyChangesOnUnconfirmedRequests(changes);
                                     applyChangesOnOpenedResultSets(changes);
                                 }
                             } catch (LocalStorageException e) {
@@ -80,7 +81,8 @@ public class Storage {
 				if (executionRequest.isExecuteLocally()){
                     //only local execution, just execute (that was done already)
                     DocumentChanges documentChanges = transaction.getLocalChanges();
-                    applyChangesOnUnconfirmedRequests(documentChanges);
+                    //next line - mixing execute and call methods
+                    //applyChangesOnUnconfirmedRequests(documentChanges);
                     applyChangesOnOpenedResultSets(documentChanges);
                     executionRequest.ready();
 				} else if (executionRequest.isExecute()){
@@ -91,8 +93,8 @@ public class Storage {
                         pendingRequestsRemote.offer(executionRequest);
                         pendingRequestsRemote.notify();
                     }
-                    applyChangesOnUnconfirmedRequests(documentChanges);
-                    applyChangesOnOpenedResultSets(documentChanges);
+                    //next line - mixing execute and call methods, shouldn't happen
+                    //applyChangesOnUnconfirmedRequests(documentChanges);
                     executionRequest.ready();
                 } else if (executionRequest.isCall()){
                     //speculative execution (method called on server), local changes to unconfirmed requests
@@ -452,7 +454,7 @@ public class Storage {
      * Method to apply changes to document requests.
      *
      * Testing use of it (if server doesn't confirm request,  overlays else overwrite documents
-     * already received from server).
+     * already received from server). Not used in last version.
      * @param documentChanges changes from server to update overlays
      */
     private void applyChangesOnUnconfirmedRequests(DocumentChanges documentChanges) {
@@ -479,7 +481,7 @@ public class Storage {
      * Method to apply changes to document requests.
      *
      * Testing use of it (if server doesn't confirm request, overlays else overwrite documents
-     * already received from server).
+     * already received from server). Not used in last version.
      * @param documentChanges list of changes from server
      */
     private void applyListOfChangesOnOpenedResultSets(List<DocumentChanges> documentChanges) {
@@ -497,7 +499,7 @@ public class Storage {
      * Method to apply changes to opened result sets.
      *
      * Testing use of it (if server doesn't confirm request, overlays else overwrite documents
-     * already received from server).
+     * already received from server - can be good but also bad).
      * @param documentChanges changes from server
      */
     private void applyChangesOnOpenedResultSets(DocumentChanges documentChanges) {

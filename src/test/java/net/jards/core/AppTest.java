@@ -55,29 +55,14 @@ public class AppTest
             storage.start("");
 
             //register speculative method for local execution
-            storage.registerSpeculativeMethod("tasks.insertWithSeed", new TransactionRunnableExecutions());
+            //storage.registerSpeculativeMethod("tasks.insertWithSeed", new TransactionRunnableExecutions());
 
             //execute method with query
-            storage.execute(new TransactionRunnableQuery());
+            //storage.execute(new TransactionRunnableQuery());
 
             //storage.subscribe("tasks");
             //storage.call("tasks.insertWithSeed", "{\"text\":\"for seed test\"}");
             //storage.executeAsync(new TransactionRunnableExecutions(), "{\"text\":\"simple test\"}");
-
-            /* use case testing code
-            TransactionRunnable example = (context, transaction, arguments) -> {
-                Collection tasks = context.getCollection("tasks");           //gets collection "tasks"
-                Document document = new Document((String)arguments[0]);      //prepares document
-                document = tasks.create(document, transaction);              //writes document
-                ResultSet result = tasks.find();                             //gets all documents from collection
-                result.getAsRxList().subscribe(actualResult ->
-                        System.out.println(actualResult.toString()));        //get as RxJava Observable
-            };
-            storage.registerSpeculativeMethod("tasks.insert", example);
-            storage.call("tasks.insert", "Mount Everest");    //call method on server (execute speculation)
-
-            storage.executeAsync(example, "Mount Blanc");   //or execute locally and send changes to server
-            */
 
             //wait for work to finish (and see logs in console)
             Thread.sleep(3000);
